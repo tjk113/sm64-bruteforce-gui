@@ -123,7 +123,6 @@ class Bruteforcer:
     # keep track of best m64 found and best objective value
     def bruteforce():
         Bruteforcer.initialize()
-        # print(Common.bruteforcing)
 
         # Make a backup of the original inputs
         m64_orig = Bruteforcer.m64
@@ -148,7 +147,6 @@ class Bruteforcer:
             for i in range(500000):
                 if not Common.bruteforcing:
                     return
-                print(Common.bruteforcing)
                 # Break out early if these settings get stuck
                 if i - last_change > 25000:
                     print(temp)

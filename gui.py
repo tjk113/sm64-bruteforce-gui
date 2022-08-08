@@ -219,7 +219,6 @@ class MainFrame(wx.Frame):
         if Common.bruteforcing:
             self.brute_button.SetLabel("Bruteforce!")
             Common.bruteforcing = False
-            print('AAAAAAAAAAAAAAAAAAAAA', Common.bruteforcing)
         else:
             self.brute_button.SetLabel("Stop Bruteforcing")
             Common.bruteforcing = True
