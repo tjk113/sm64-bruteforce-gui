@@ -2,6 +2,7 @@ import threading
 import wx
 import wx.lib.filebrowsebutton as filebrowse
 
+from actions import actions
 from common import Common
 from script_options import ScriptOptions as so
 from user_defined_script_class import Bruteforcer
@@ -66,10 +67,11 @@ class MainFrame(wx.Frame):
         self.fyaw_txtbox = wx.TextCtrl(self.panel, size=(44, -1), pos=(187, 153), style=wx.TE_CENTRE)
         self.fyaw_weight_txtbox = wx.TextCtrl(self.panel, value="1", size=(30, -1), pos=(270, 153), style=wx.TE_CENTRE)
 
-        # TODO: implement these two fitness options
-        # wx.StaticText(self.panel, label="Action:", pos=(420, 38))
-        # self.actn_dropdown =
-
+        wx.StaticText(self.panel, label="Action:", pos=(307, 157))
+        # TODO: implement proper auto-complete
+        self.actn_dropdown = wx.ComboBox(self.panel, size=(170, -1), pos=(350, 153), choices=list(actions.keys()))
+        
+        # TODO: implement this
         # wx.StaticText(self.panel, label="Unconditional Option:", pos=(420, 38))
         # self.uncond_opt_txtbox =
         # End Fitness Options Box
@@ -135,9 +137,9 @@ class MainFrame(wx.Frame):
             so.set_option_weight('des_fyaw', float(self.fyaw_weight_txtbox.GetValue()))
         print('Des FYaw:', str(so.get_option_val('des_fyaw')), "(" + ("N/A", str(so.get_option_weight('des_fyaw')))[so.get_option_weight('des_fyaw') != ""] + ")")
 
-    # def SetDesActn(self, event):
-    #     so.set_des_actn(self.actn_dropdown.GetValue())
-    #     print(so.get_option_val('Des Action:', 'des_actn'))
+    def SetDesActn(self, event):
+        so.set_des_actn(actions[self.actn_dropdown.GetValue()])
+        print('Des Action:', self.actn_dropdown.GetValue())
 
     # def SetUnconditionalOption(self, event):
     #     so.set_unconditional_option(self.uncond_opt_txtbox.GetValue())
@@ -179,6 +181,8 @@ class MainFrame(wx.Frame):
                     self.coins_txtbox.SetValue(split_list[1].replace('\n', ''))
                 elif split_list[0] == 'des_fyaw':
                     self.fyaw_txtbox.SetValue(split_list[1].replace('\n', ''))
+                elif split_list[0] == 'des_actn':
+                    self.actn_dropdown.SetValue(split_list[1].replace('\n', ''))
         print('Config Loaded')
 
     def SaveConfig(self):
@@ -194,7 +198,8 @@ class MainFrame(wx.Frame):
             file.write(f"des_z={self.z_txtbox.GetValue()}\n")
             file.write(f"des_hspd={self.hspd_txtbox.GetValue()}\n")
             file.write(f"des_coins={self.coins_txtbox.GetValue()}\n")
-            file.write(f"des_fyaw={self.fyaw_txtbox.GetValue()}")
+            file.write(f"des_fyaw={self.fyaw_txtbox.GetValue()}\n")
+            file.write(f"des_actn={self.actn_dropdown.GetValue()}")
             # file.write(f"game={(str(so.get_option_val('game'))[6:])[:-2] if so.get_option_val('game') != None else ''}\n")
             # file.write(f"start_frame={str(so.get_option_val('start_frame')) if so.get_option_val('start_frame') != None else ''}\n")
             # file.write(f"end_frame={str(so.get_option_val('end_frame')) if so.get_option_val('end_frame') != None else ''}\n")
@@ -232,6 +237,7 @@ class MainFrame(wx.Frame):
             self.SetDesHSpd(event)
             self.SetDesCoins(event)
             self.SetDesFYaw(event)
+            self.SetDesActn(event)
 
             # Start bruteforcing
             self.brute_thread = threading.Thread(target=Bruteforcer.bruteforce)

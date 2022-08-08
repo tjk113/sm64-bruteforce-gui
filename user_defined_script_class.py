@@ -1,6 +1,5 @@
 import wafel
 import numpy as np
-from typing import *
 from random import *
 
 from common import Common
@@ -93,8 +92,7 @@ class Bruteforcer:
             des_z = so.get_option_val('des_z'),
             des_hspd = so.get_option_val('des_hspd'),
             des_coins = so.get_option_val('des_coins'),
-            des_fyaw = so.get_option_val('des_fyaw'),
-            des_actn = so.get_option_val('des_actn')
+            des_fyaw = so.get_option_val('des_fyaw')
         )
         fitness = 0
         iter = range(7)
@@ -104,6 +102,11 @@ class Bruteforcer:
                 continue
 
             fitness += so.get_option_weight(option) * abs(fitness_opt_vals[option] - eval(list(locals())[i]))
+
+        # If the desired action isn't achieved, no improvement is made to fitness
+        if so.get_option_val('des_actn') != None:
+            if actn != so.get_option_val('des_actn'):
+                return 99999
             
         # print(fitness)
         return fitness
