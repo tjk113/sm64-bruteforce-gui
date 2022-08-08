@@ -1,8 +1,10 @@
+from calendar import c
 import wx
 import wx.lib.filebrowsebutton as filebrowse
 
+from common import Common
 from script_options import ScriptOptions as so
-from user_defined_script import Bruteforcer
+from user_defined_script_class import Bruteforcer
 
 # Main Window
 class MainFrame(wx.Frame):
@@ -75,6 +77,8 @@ class MainFrame(wx.Frame):
         self.brute_button = wx.Button(self.panel, label="Bruteforce!", pos=(275, 300), size=(165, 50))
         self.Bind(wx.EVT_BUTTON, self.StartBruteforce, self.brute_button)
 
+        self.Bind(wx.EVT_CLOSE, self.OnWindowClose)
+
     # Setter Functions
 
     def SetGame(self, event):
@@ -109,27 +113,27 @@ class MainFrame(wx.Frame):
             so.set_option_weight('des_x', float(self.x_weight_txtbox.GetValue()))
             so.set_option_weight('des_y', float(self.y_weight_txtbox.GetValue()))
             so.set_option_weight('des_z', float(self.z_weight_txtbox.GetValue()))
-        print('Des X:', str(so.get_option_val('des_x')), "(" + ("N/A", str(so.get_option_weight('des_x')))[so.get_option_weight('des_x') != None] + ")", 
-              'Des Y:', str(so.get_option_val('des_y')), "(" + ("N/A", str(so.get_option_weight('des_y')))[so.get_option_weight('des_y') != None] + ")",
-              'Des Z:', str(so.get_option_val('des_z')), "(" + ("N/A", str(so.get_option_weight('des_z')))[so.get_option_weight('des_z') != None] + ")")
+        print('Des X:', str(so.get_option_val('des_x')), "(" + ("N/A", str(so.get_option_weight('des_x')))[so.get_option_weight('des_x') != ""] + ")", 
+              'Des Y:', str(so.get_option_val('des_y')), "(" + ("N/A", str(so.get_option_weight('des_y')))[so.get_option_weight('des_y') != ""] + ")",
+              'Des Z:', str(so.get_option_val('des_z')), "(" + ("N/A", str(so.get_option_weight('des_z')))[so.get_option_weight('des_z') != ""] + ")")
 
     def SetDesHSpd(self, event):
         if self.hspd_txtbox.GetValue() != "":
             so.set_des_hspd(float(self.hspd_txtbox.GetValue()))
             so.set_option_weight('des_hspd', float(self.hspd_weight_txtbox.GetValue()))
-        print('Des HSpd:', str(so.get_option_val('des_hspd')), "(" + ("N/A", str(so.get_option_weight('des_hspd')))[so.get_option_weight('des_hspd') != None] + ")")
+        print('Des HSpd:', str(so.get_option_val('des_hspd')), "(" + ("N/A", str(so.get_option_weight('des_hspd')))[so.get_option_weight('des_hspd') != ""] + ")")
 
     def SetDesCoins(self, event):
         if self.coins_txtbox.GetValue() != "":
             so.set_des_coins(int(self.coins_txtbox.GetValue()))
             so.set_option_weight('des_coins', float(self.coins_weight_txtbox.GetValue()))
-        print('Des Coins:', str(so.get_option_val('des_coins')), "(" + ("N/A", str(so.get_option_weight('des_coins')))[so.get_option_weight('des_coins') != None] + ")")
+        print('Des Coins:', str(so.get_option_val('des_coins')), "(" + ("N/A", str(so.get_option_weight('des_coins')))[so.get_option_weight('des_coins') != ""] + ")")
 
     def SetDesFYaw(self, event):
         if self.fyaw_txtbox.GetValue() != "":
             so.set_des_fyaw(int(self.fyaw_txtbox.GetValue()))
             so.set_option_weight('des_fyaw', float(self.fyaw_weight_txtbox.GetValue()))
-        print('Des FYaw:', str(so.get_option_val('des_fyaw')), "(" + ("N/A", str(so.get_option_weight('des_fyaw')))[so.get_option_weight('des_fyaw') != None] + ")")
+        print('Des FYaw:', str(so.get_option_val('des_fyaw')), "(" + ("N/A", str(so.get_option_weight('des_fyaw')))[so.get_option_weight('des_fyaw') != ""] + ")")
 
     # def SetDesActn(self, event):
     #     so.set_des_actn(self.actn_dropdown.GetValue())
@@ -141,25 +145,107 @@ class MainFrame(wx.Frame):
 
     # End Setter Functions
 
+    # Config Functions
+
+    def LoadConfig(self):
+        with open('config.cfg', 'r') as file:
+            for line in file:
+                split_list = line.split('=')
+                # can't use match statement cause no py 3.10 :(
+                if split_list[0] == 'game':
+                    self.libsm64_browse.SetValue(split_list[1].replace('\n', ''))
+                elif split_list[0] == 'start_frame':
+                    self.start_frame_txtbox.SetValue(split_list[1].replace('\n', ''))
+                elif split_list[0] == 'end_frame':
+                    self.end_frame_txtbox.SetValue(split_list[1].replace('\n', ''))
+                elif split_list[0] == 'input_m64':
+                    self.m64_browse.SetValue(split_list[1].replace('\n', ''))
+                elif split_list[0] == 'temp':
+                    self.temp_txtbox.SetValue(split_list[1].replace('\n', ''))
+                elif split_list[0] == 'regularization':
+                    if split_list[1] == 'True':
+                        self.regularization_checkbox.SetValue(True)
+                    if split_list[1] == 'False':
+                        self.regularization_checkbox.SetValue(False)
+                elif split_list[0] == 'des_x':
+                    self.x_txtbox.SetValue(split_list[1].replace('\n', ''))
+                elif split_list[0] == 'des_y':
+                    self.y_txtbox.SetValue(split_list[1].replace('\n', ''))
+                elif split_list[0] == 'des_z':
+                    self.z_txtbox.SetValue(split_list[1].replace('\n', ''))
+                elif split_list[0] == 'des_hspd':
+                    self.hspd_txtbox.SetValue(split_list[1].replace('\n', ''))
+                elif split_list[0] == 'des_coins':
+                    self.coins_txtbox.SetValue(split_list[1].replace('\n', ''))
+                elif split_list[0] == 'des_fyaw':
+                    self.fyaw_txtbox.SetValue(split_list[1].replace('\n', ''))
+        print('Config Loaded')
+
+    def SaveConfig(self):
+        with open('config.cfg', 'w+') as file:
+            file.write(f"game={self.libsm64_browse.GetValue()}\n")
+            file.write(f"start_frame={self.start_frame_txtbox.GetValue()}\n")
+            file.write(f"end_frame={self.end_frame_txtbox.GetValue()}\n")
+            file.write(f"input_m64={self.m64_browse.GetValue()}\n")
+            file.write(f"temp={self.temp_txtbox.GetValue()}\n")
+            file.write(f"regularization={self.regularization_checkbox.GetValue()}\n")
+            file.write(f"des_x={self.x_txtbox.GetValue()}\n")
+            file.write(f"des_y={self.y_txtbox.GetValue()}\n")
+            file.write(f"des_z={self.z_txtbox.GetValue()}\n")
+            file.write(f"des_hspd={self.hspd_txtbox.GetValue()}\n")
+            file.write(f"des_coins={self.coins_txtbox.GetValue()}\n")
+            file.write(f"des_fyaw={self.fyaw_txtbox.GetValue()}")
+            # file.write(f"game={(str(so.get_option_val('game'))[6:])[:-2] if so.get_option_val('game') != None else ''}\n")
+            # file.write(f"start_frame={str(so.get_option_val('start_frame')) if so.get_option_val('start_frame') != None else ''}\n")
+            # file.write(f"end_frame={str(so.get_option_val('end_frame')) if so.get_option_val('end_frame') != None else ''}\n")
+            # file.write(f"input_m64={str(so.get_option_val('input_m64')) if so.get_option_val('input_m64') != None else ''}\n")
+            # file.write(f"temp={str(so.get_option_val('temp')) if so.get_option_val('temp') != None else ''}\n")
+            # file.write(f"regularization={str(so.get_option_val('regularization'))}\n")
+            # file.write(f"des_x={str(so.get_option_val('des_x')) if so.get_option_val('des_x') != None else ''}\n")
+            # file.write(f"des_y={str(so.get_option_val('des_y')) if so.get_option_val('des_y') != None else ''}\n")
+            # file.write(f"des_z={str(so.get_option_val('des_z')) if so.get_option_val('des_z') != None else ''}\n")
+            # file.write(f"des_hspd={str(so.get_option_val('des_hspd')) if so.get_option_val('des_hspd') != None else ''}\n")
+            # file.write(f"des_coins={str(so.get_option_val('des_coins')) if so.get_option_val('des_coins') != None else ''}\n")
+            # file.write(f"des_fyaw={str(so.get_option_val('des_fyaw')) if so.get_option_val('des_fyaw') != None else ''}\n")
+            # file.write(f"DesActn={so.get_option_val('des_actn')}\n")
+            # file.write(f"UncondOpt={so.get_option_val('uncond_opt')}")
+        print('Config Saved')
+
+    # End Config Functions
+
     # Run setter functions and start bruteforcing with
     # specified (or default, if not specified) options
     def StartBruteforce(self, event):
-        self.SetGame(event)
-        self.SetRange(event)
-        self.SetM64(event)
-        self.SetRegularization(event)
-        self.SetDesCoords(event)
-        self.SetDesHSpd(event)
-        self.SetDesCoins(event)
-        self.SetDesFYaw(event)
+        if Common.bruteforcing:
+            self.brute_button.SetLabel("Bruteforce!")
+            Common.bruteforcing = False
+        else:
+            self.brute_button.SetLabel("Stop Bruteforcing")
+            Common.bruteforcing = True
 
-        # Start bruteforcing
-        Bruteforcer.bruteforce()
+            self.SetGame(event)
+            self.SetRange(event)
+            self.SetM64(event)
+            self.SetTemp(event)
+            self.SetRegularization(event)
+            self.SetDesCoords(event)
+            self.SetDesHSpd(event)
+            self.SetDesCoins(event)
+            self.SetDesFYaw(event)
+
+            # Start bruteforcing
+            Bruteforcer.bruteforce()
+        
+
+    def OnWindowClose(self, event):
+        self.SaveConfig()
+        self.Destroy()
 
 # End Main Window
 
 app = wx.App()
 win = MainFrame(None, -1, "SM64 Bruteforce GUI", size=(750,400))
+win.LoadConfig()
 win.SetIcon(wx.Icon('DorrieChamp.ico'))
 win.Show(True)
 app.MainLoop()
