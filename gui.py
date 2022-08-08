@@ -1,4 +1,4 @@
-from calendar import c
+import threading
 import wx
 import wx.lib.filebrowsebutton as filebrowse
 
@@ -219,6 +219,7 @@ class MainFrame(wx.Frame):
         if Common.bruteforcing:
             self.brute_button.SetLabel("Bruteforce!")
             Common.bruteforcing = False
+            print('AAAAAAAAAAAAAAAAAAAAA', Common.bruteforcing)
         else:
             self.brute_button.SetLabel("Stop Bruteforcing")
             Common.bruteforcing = True
@@ -234,7 +235,9 @@ class MainFrame(wx.Frame):
             self.SetDesFYaw(event)
 
             # Start bruteforcing
-            Bruteforcer.bruteforce()
+            self.brute_thread = threading.Thread(target=Bruteforcer.bruteforce)
+            self.brute_thread.setDaemon(True)
+            self.brute_thread.start()
         
 
     def OnWindowClose(self, event):

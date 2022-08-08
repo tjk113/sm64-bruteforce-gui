@@ -105,7 +105,7 @@ class Bruteforcer:
 
             fitness += so.get_option_weight(option) * abs(fitness_opt_vals[option] - eval(list(locals())[i]))
             
-        print(fitness)
+        # print(fitness)
         return fitness
 
     # testing fitness function
@@ -131,10 +131,9 @@ class Bruteforcer:
         best_ever_val = 999999  # change this to a known best to continue work
 
         for attempt in range(500000):
-            print(Common.bruteforcing)
             last_change = 0
             # Temperature for annealing
-            temp = 0.4
+            temp = so.get_option_val('temp')
             # Determine the size of joystick perturbations and number of joystick perturbations
             max_changes = randint(1, 8)
             max_size = randint(1, 30)
@@ -147,9 +146,9 @@ class Bruteforcer:
 
             # Now try random perturbations
             for i in range(500000):
-                # if not Common.bruteforcing:
-                #     print('HHHHHHHHHH')
-                #     return
+                if not Common.bruteforcing:
+                    return
+                print(Common.bruteforcing)
                 # Break out early if these settings get stuck
                 if i - last_change > 25000:
                     print(temp)
