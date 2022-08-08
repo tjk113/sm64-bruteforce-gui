@@ -68,8 +68,11 @@ class MainFrame(wx.Frame):
         self.fyaw_weight_txtbox = wx.TextCtrl(self.panel, value="1", size=(30, -1), pos=(270, 153), style=wx.TE_CENTRE)
 
         wx.StaticText(self.panel, label="Action:", pos=(307, 157))
+        choices = list(actions.keys())
+        # Blank placeholder option for indicating no action
+        choices[0] = ""
         # TODO: implement proper auto-complete
-        self.actn_dropdown = wx.ComboBox(self.panel, size=(170, -1), pos=(350, 153), choices=list(actions.keys()))
+        self.actn_dropdown = wx.ComboBox(self.panel, size=(170, -1), pos=(350, 153), choices=choices)
         
         # TODO: implement this
         # wx.StaticText(self.panel, label="Unconditional Option:", pos=(420, 38))
@@ -138,8 +141,10 @@ class MainFrame(wx.Frame):
         print('Des FYaw:', str(so.get_option_val('des_fyaw')), "(" + ("N/A", str(so.get_option_weight('des_fyaw')))[so.get_option_weight('des_fyaw') != ""] + ")")
 
     def SetDesActn(self, event):
-        so.set_des_actn(actions[self.actn_dropdown.GetValue()])
-        print('Des Action:', self.actn_dropdown.GetValue())
+        actn = self.actn_dropdown.GetValue()
+        if actn != "":
+            so.set_des_actn(actions[actn])
+        print('Des Action:', ("None", actn)[actn != ""])
 
     # def SetUnconditionalOption(self, event):
     #     so.set_unconditional_option(self.uncond_opt_txtbox.GetValue())
@@ -228,6 +233,7 @@ class MainFrame(wx.Frame):
             self.brute_button.SetLabel("Stop Bruteforcing")
             Common.bruteforcing = True
 
+            print("--- Configuration ---")
             self.SetGame(event)
             self.SetRange(event)
             self.SetM64(event)
@@ -238,6 +244,7 @@ class MainFrame(wx.Frame):
             self.SetDesCoins(event)
             self.SetDesFYaw(event)
             self.SetDesActn(event)
+            print("---------------------")
 
             # Start bruteforcing
             self.brute_thread = threading.Thread(target=Bruteforcer.bruteforce)

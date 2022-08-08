@@ -14,6 +14,6 @@ for now, just run `gui.py` to start the program. fill in the config parameters a
 - gui idea: implement an input direction lua theme parser
 - gui idea: have a dropdown list of every action to select from
 - gui idea: implement tooltips over static text
-- brute idea: need to figure out when to stop
 - functionality idea: hook into mupen process and be able to play the output m64 and load a savestate (write new mupen api funcs for this)
 - functionality idea: user can set a timer to notify them when a certain amount of time has passed since the bruteforcing started
+- functionality idea: allow for compiling a rust version of bruteforcing script and hooking into the process so we can still read output data

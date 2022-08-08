@@ -2,6 +2,7 @@ import wafel
 import numpy as np
 from random import *
 
+from actions import actions
 from common import Common
 from script_options import ScriptOptions as so
 
@@ -95,16 +96,17 @@ class Bruteforcer:
             des_fyaw = so.get_option_val('des_fyaw')
         )
         fitness = 0
-        iter = range(7)
+        iter = range(6)
         for option, i in zip(fitness_opt_vals, iter):
             # Skip unused options
             if fitness_opt_vals[option] == None:
                 continue
 
+            # Apply weights
             fitness += so.get_option_weight(option) * abs(fitness_opt_vals[option] - eval(list(locals())[i]))
 
         # If the desired action isn't achieved, no improvement is made to fitness
-        if so.get_option_val('des_actn') != None:
+        if so.get_option_val('des_actn') != None and so.get_option_val('des_actn') != '':
             if actn != so.get_option_val('des_actn'):
                 return 99999
             
@@ -149,6 +151,10 @@ class Bruteforcer:
             # Now try random perturbations
             for i in range(500000):
                 if not Common.bruteforcing:
+                    print(f'--- Bruteforcing ended --- \nResults: '
+                    f'X: {Bruteforcer.best_x} Y: {Bruteforcer.best_y} Z: {Bruteforcer.best_z} HSpd: {Bruteforcer.best_hspd} '
+                    f'Coins: {Bruteforcer.best_coins} coins FYaw: {Bruteforcer.best_fyaw} '
+                    f'Action: {list(actions.keys())[list(actions.values()).index(Bruteforcer.best_actn)]}') # stolen stackoverflow line (finds key from value)
                     return
                 # Break out early if these settings get stuck
                 if i - last_change > 25000:
@@ -228,6 +234,17 @@ class Bruteforcer:
                     if fitness < best_val:
                         print(f'New best: {fitness:.4f} ({best_val - fitness:.4f})')
                         print(f'X: {x} Y: {y} Z: {z} HSpd: {hspd} FYaw: {fyaw} Coins: {coins}')
+                        Bruteforcer.best_x = Bruteforcer.game.read('gMarioState.pos')[0]
+                        Bruteforcer.best_y = Bruteforcer.game.read('gMarioState.pos')[1]
+                        Bruteforcer.best_z = Bruteforcer.game.read('gMarioState.pos')[2]
+                        Bruteforcer.best_hspd = Bruteforcer.game.read('gMarioState.forwardVel')
+                        Bruteforcer.best_fyaw = Bruteforcer.game.read('gMarioState.faceAngle')[1]
+                        Bruteforcer.best_actn = Bruteforcer.game.read('gMarioState.action')
+                        Bruteforcer.best_coins = Bruteforcer.game.read('gMarioState.numCoins')
+                        if Bruteforcer.best_fyaw > 65535:
+                            Bruteforcer.best_fyaw -= 65536
+                        elif Bruteforcer.best_fyaw < 0:
+                            Bruteforcer.best_fyaw += 65536
                         best_val = fitness
                     if fitness < best_ever_val:
                         print(f'New best ever: {fitness:.4f} ({best_ever_val - fitness:.4f})')
