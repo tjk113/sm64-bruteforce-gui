@@ -1,9 +1,11 @@
+import queue
+from random import *
+from dataclasses import dataclass
 import wafel
 import numpy as np
-from random import *
 
-from actions import actions
-from common import Common
+from actions import *
+import common
 from script_options import ScriptOptions as so
 
 class Bruteforcer:
@@ -24,6 +26,18 @@ class Bruteforcer:
     power_on = None
     m64 = None
     startst = None
+
+    # Struct to hold the current best values
+    @dataclass
+    class current_values():
+        x: float
+        y: float
+        z: float
+        hspd: float
+        fyaw: int
+        actn: str
+        coins: int
+        fitness: float
 
     # apply current m64 data, it doesn't happen itself
     def set_inputs(game, inputs):
@@ -110,7 +124,6 @@ class Bruteforcer:
             if actn != so.get_option_val('des_actn'):
                 return 99999
             
-        # print(fitness)
         return fitness
 
     # testing fitness function
@@ -126,7 +139,7 @@ class Bruteforcer:
     # This cell is definitely the messiest, and where you might want to do something
     # different. Roughly speaking, it does annealing with random restarts.
     # keep track of best m64 found and best objective value
-    def bruteforce():
+    def bruteforce(queue):
         Bruteforcer.initialize()
 
         # Make a backup of the original inputs
@@ -150,11 +163,11 @@ class Bruteforcer:
 
             # Now try random perturbations
             for i in range(500000):
-                if not Common.bruteforcing:
+                if not common.bruteforcing:
                     print(f'--- Bruteforcing ended --- \nResults: '
                     f'X: {Bruteforcer.best_x} Y: {Bruteforcer.best_y} Z: {Bruteforcer.best_z} HSpd: {Bruteforcer.best_hspd} '
                     f'Coins: {Bruteforcer.best_coins} coins FYaw: {Bruteforcer.best_fyaw} '
-                    f'Action: {list(actions.keys())[list(actions.values()).index(Bruteforcer.best_actn)]}') # stolen stackoverflow line (finds key from value)
+                    f'Action: {GetActionName(Bruteforcer.best_actn)}')
                     return
                 # Break out early if these settings get stuck
                 if i - last_change > 25000:
@@ -167,6 +180,8 @@ class Bruteforcer:
                 changes = []
                 if i % 1000 == 0:
                     print(f'{i}. {cur_val:.4f}')
+                    # Send data to GUI through event
+                    common.PostEventWrapper(queue.queue[0], common.UpdateOutputEvent(vals=Bruteforcer.current_values))
                 # Lower temperature
                 if i % 300 == 0:
                     temp = temp * .995
@@ -212,28 +227,33 @@ class Bruteforcer:
                 endst = Bruteforcer.game.save_state()
                 offset = 0
                 # values that can be used to figure out fitness
-                x = Bruteforcer.game.read('gMarioState.pos')[0]
-                y = Bruteforcer.game.read('gMarioState.pos')[1]
-                z = Bruteforcer.game.read('gMarioState.pos')[2]
-                hspd = Bruteforcer.game.read('gMarioState.forwardVel')
-                fyaw = Bruteforcer.game.read('gMarioState.faceAngle')[1]
-                actn = Bruteforcer.game.read('gMarioState.action')
-                coins = Bruteforcer.game.read('gMarioState.numCoins')
-                if fyaw > 65535:
-                    fyaw -= 65536
-                elif fyaw < 0:
-                    fyaw += 65536
-                fitness = Bruteforcer.get_fitness(x, y, z, hspd, coins, fyaw, actn)
+                Bruteforcer.current_values.x = Bruteforcer.game.read('gMarioState.pos')[0]
+                Bruteforcer.current_values.y = Bruteforcer.game.read('gMarioState.pos')[1]
+                Bruteforcer.current_values.z = Bruteforcer.game.read('gMarioState.pos')[2]
+                Bruteforcer.current_values.hspd = Bruteforcer.game.read('gMarioState.forwardVel')
+                Bruteforcer.current_values.fyaw = Bruteforcer.game.read('gMarioState.faceAngle')[1]
+                Bruteforcer.current_values.actn = Bruteforcer.game.read('gMarioState.action')
+                Bruteforcer.current_values.coins = Bruteforcer.game.read('gMarioState.numCoins')
+                if Bruteforcer.current_values.fyaw > 65535:
+                    Bruteforcer.current_values.fyaw -= 65536
+                elif Bruteforcer.current_values.fyaw < 0:
+                    Bruteforcer.current_values.fyaw += 65536
+                Bruteforcer.current_values.fitness = Bruteforcer.get_fitness(Bruteforcer.current_values.x, Bruteforcer.current_values.y, 
+                                                  Bruteforcer.current_values.z, Bruteforcer.current_values.hspd, 
+                                                  Bruteforcer.current_values.coins, Bruteforcer.current_values.fyaw, 
+                                                  Bruteforcer.current_values.actn)
                 if fit == 99999:
-                    fitness = 99990
+                    Bruteforcer.current_values.fitness = 99990
                 if so.get_regularization():
-                    fitness = fitness + Bruteforcer.l1ofdiff(m64)*.03 # ?
-                if fitness < cur_val:
+                    Bruteforcer.current_values.fitness = Bruteforcer.current_values.fitness + Bruteforcer.l1ofdiff(m64)*.03 # ?
+                if Bruteforcer.current_values.fitness < cur_val:
                     last_change = i
-                    cur_val = fitness
-                    if fitness < best_val:
-                        print(f'New best: {fitness:.4f} ({best_val - fitness:.4f})')
-                        print(f'X: {x} Y: {y} Z: {z} HSpd: {hspd} FYaw: {fyaw} Coins: {coins}')
+                    cur_val = Bruteforcer.current_values.fitness
+                    if Bruteforcer.current_values.fitness < best_val:
+                        print(f'New best: {Bruteforcer.current_values.fitness:.4f} ({best_val - Bruteforcer.current_values.fitness:.4f})')
+                        print(f'X: {Bruteforcer.current_values.x} Y: {Bruteforcer.current_values.y} ' 
+                              f'Z: {Bruteforcer.current_values.z} HSpd: {Bruteforcer.current_values.hspd} '
+                              f'FYaw: {Bruteforcer.current_values.fyaw} Coins: {Bruteforcer.current_values.coins}')
                         Bruteforcer.best_x = Bruteforcer.game.read('gMarioState.pos')[0]
                         Bruteforcer.best_y = Bruteforcer.game.read('gMarioState.pos')[1]
                         Bruteforcer.best_z = Bruteforcer.game.read('gMarioState.pos')[2]
@@ -245,17 +265,17 @@ class Bruteforcer:
                             Bruteforcer.best_fyaw -= 65536
                         elif Bruteforcer.best_fyaw < 0:
                             Bruteforcer.best_fyaw += 65536
-                        best_val = fitness
-                    if fitness < best_ever_val:
-                        print(f'New best ever: {fitness:.4f} ({best_ever_val - fitness:.4f})')
+                        best_val = Bruteforcer.current_values.fitness
+                    if Bruteforcer.current_values.fitness < best_ever_val:
+                        print(f'New best ever: {Bruteforcer.current_values.fitness:.4f} ({best_ever_val - Bruteforcer.current_values.fitness:.4f})')
                         wafel.save_m64(Bruteforcer.filename_new, m64[0], m64[1])
-                        best_ever_val = fitness
+                        best_ever_val = Bruteforcer.current_values.fitness
                         best_ever_m64 = m64
                 # Chose the most basic function for annealing
-                elif random() < np.exp(-(fitness - cur_val) / temp):
-                    if fitness != cur_val:
+                elif random() < np.exp(-(Bruteforcer.current_values.fitness - cur_val) / temp):
+                    if Bruteforcer.current_values.fitness != cur_val:
                         last_change = i
-                    cur_val = fitness
+                    cur_val = Bruteforcer.current_values.fitness
                 else:
                     # if we failed, revert m64
                     # revert changes in reverse order of how they were made

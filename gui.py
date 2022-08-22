@@ -1,11 +1,11 @@
 import threading
+import queue
 import wx
 import wx.lib.filebrowsebutton as filebrowse
 
-from actions import actions
-from common import Common
+from actions import *
+import common
 from script_options import ScriptOptions as so
-from user_defined_script_class import Bruteforcer
 
 # Main Window
 class MainFrame(wx.Frame):
@@ -78,6 +78,54 @@ class MainFrame(wx.Frame):
         # wx.StaticText(self.panel, label="Unconditional Option:", pos=(420, 38))
         # self.uncond_opt_txtbox =
         # End Fitness Options Box
+
+        # Output Box
+        wx.StaticBox(self.panel, label="Output", size=(725, 105), pos=(5, 185))
+        self.Bind(common.EVT_UPDATE_OUTPUT, self.UpdateOutput)
+
+        font1 = wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.NORMAL, underline=True)
+        font2 = wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.NORMAL)
+
+        wx.StaticBox(self.panel, label="Output", size=(725, 105), pos=(5, 185))
+
+        self.best_x_text = wx.StaticText(self.panel, label="Best X:", pos=(14, 210))
+        self.best_x_val = wx.StaticText(self.panel, pos=(55, 210))
+
+        self.best_y_text = wx.StaticText(self.panel, label="Best Y:", pos=(14, 236))
+        self.best_y_val = wx.StaticText(self.panel, pos=(55, 236))
+
+        self.best_z_text = wx.StaticText(self.panel, label="Best Z:", pos=(14, 263))
+        self.best_z_val = wx.StaticText(self.panel, pos=(55, 263))
+
+        self.best_hspd_text = wx.StaticText(self.panel, label="Best HSpd:", pos=(150, 210))
+        self.best_hspd_val = wx.StaticText(self.panel, pos=(215, 210))
+
+        self.best_coins_text = wx.StaticText(self.panel, label="Best Coins:", pos=(150, 236))
+        self.best_coins_val = wx.StaticText(self.panel, pos=(215, 236))
+
+        self.best_fyaw_text = wx.StaticText(self.panel, label="Best FYaw:", pos=(150, 263))
+        self.best_fyaw_val = wx.StaticText(self.panel, pos=(215, 263))
+
+        self.best_actn_text = wx.StaticText(self.panel, label="Best Action:", pos=(307, 263))
+        self.best_actn_val = wx.StaticText(self.panel, pos=(373, 263))
+
+        self.best_x_text.SetFont(font1)
+        self.best_x_val.SetFont(font2)
+        self.best_y_text.SetFont(font1)
+        self.best_y_val.SetFont(font2)
+        self.best_z_text.SetFont(font1)
+        self.best_z_val.SetFont(font2)
+        self.best_hspd_text.SetFont(font1)
+        self.best_hspd_val.SetFont(font2)
+        self.best_coins_text.SetFont(font1)
+        self.best_coins_val.SetFont(font2)
+        self.best_fyaw_text.SetFont(font1)
+        self.best_fyaw_val.SetFont(font2)
+        self.best_actn_text.SetFont(font1)
+        self.best_actn_val.SetFont(font2)
+        
+        # choices = list(actions.keys())
+        # End Output Box
 
         self.brute_button = wx.Button(self.panel, label="Bruteforce!", pos=(275, 300), size=(165, 50))
         self.Bind(wx.EVT_BUTTON, self.StartBruteforce, self.brute_button)
@@ -226,13 +274,10 @@ class MainFrame(wx.Frame):
     # Run setter functions and start bruteforcing with
     # specified (or default, if not specified) options
     def StartBruteforce(self, event):
-        if Common.bruteforcing:
+        if common.bruteforcing:
             self.brute_button.SetLabel("Bruteforce!")
-            Common.bruteforcing = False
+            common.bruteforcing = False
         else:
-            self.brute_button.SetLabel("Stop Bruteforcing")
-            Common.bruteforcing = True
-
             print("--- Configuration ---")
             self.SetGame(event)
             self.SetRange(event)
@@ -247,10 +292,24 @@ class MainFrame(wx.Frame):
             print("---------------------")
 
             # Start bruteforcing
-            self.brute_thread = threading.Thread(target=Bruteforcer.bruteforce)
-            self.brute_thread.setDaemon(True)
+            from user_defined_script_class import Bruteforcer
+            self.brute_thread = threading.Thread(target=Bruteforcer.bruteforce, args=(frame_queue,), daemon=True)
             self.brute_thread.start()
+
+            self.brute_button.SetLabel("Stop Bruteforcing")
+            common.bruteforcing = True
+
+    def UpdateOutput(self, event):
+        # TODO: make only the active fitness options print
+        vals = event.vals
         
+        self.best_x_val.SetLabel(f"{vals.x:.5f}")
+        self.best_y_val.SetLabel(f"{vals.y:.5f}")
+        self.best_z_val.SetLabel(f"{vals.z:.5f}")
+        self.best_hspd_val.SetLabel(f"{vals.hspd:.5f}")
+        self.best_coins_val.SetLabel(f"{vals.coins}")
+        self.best_fyaw_val.SetLabel(f"{vals.fyaw}")
+        self.best_actn_val.SetLabel(f'{GetActionName(vals.actn)}')
 
     def OnWindowClose(self, event):
         self.SaveConfig()
@@ -258,9 +317,11 @@ class MainFrame(wx.Frame):
 
 # End Main Window
 
-app = wx.App()
-win = MainFrame(None, -1, "SM64 Bruteforce GUI", size=(750,400))
-win.LoadConfig()
-win.SetIcon(wx.Icon('DorrieChamp.ico'))
-win.Show(True)
-app.MainLoop()
+if __name__ == "__main__":
+    app = wx.App()
+    win = MainFrame(None, -1, "SM64 Bruteforce GUI", size=(750,400))
+    win.SetIcon(wx.Icon('DorrieChamp.ico'))
+    win.Show(True)
+    win.LoadConfig()
+    common.frame_queue.put(win)
+    app.MainLoop()

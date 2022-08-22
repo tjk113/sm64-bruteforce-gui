@@ -234,3 +234,6 @@ actions = {
 	"holding bowser": 0x00000391,
 	"releasing bowser": 0x00000392
 }
+
+def GetActionName(actn: int):
+	return list(actions.keys())[list(actions.values()).index(actn)]  # stolen stackoverflow line (finds dict key from value)
