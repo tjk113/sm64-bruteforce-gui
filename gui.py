@@ -72,7 +72,7 @@ class MainFrame(wx.Frame):
         wx.StaticText(self.panel, label="Action:", pos=(313, 134))
         choices = list(actions.keys())
         # Blank placeholder option for indicating no action
-        choices[0] = ""
+        choices.insert(0, '')
         # TODO: implement proper auto-complete
         self.actn_dropdown = wx.ComboBox(self.panel, size=(170, -1), pos=(356, 130), choices=choices)
         
@@ -85,40 +85,56 @@ class MainFrame(wx.Frame):
         self.Bind(common.EVT_UPDATE_OUTPUT, self.UpdateOutput)
 
         self.best_x_text = wx.StaticText(self.panel, label="Best X:", pos=(14, 210))
-        self.best_x_val = wx.StaticText(self.panel, pos=(55, 210))
+        # self.best_x_val = wx.StaticText(self.panel, pos=(55, 210))
+        self.best_x_val = wx.TextCtrl(self.panel, size=(68, 20), pos=(55, 208), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
 
         self.best_y_text = wx.StaticText(self.panel, label="Best Y:", pos=(14, 236))
-        self.best_y_val = wx.StaticText(self.panel, pos=(55, 236))
+        # self.best_y_val = wx.StaticText(self.panel, pos=(55, 236))
+        self.best_y_val = wx.TextCtrl(self.panel, size=(68, 20), pos=(55, 234), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
 
         self.best_z_text = wx.StaticText(self.panel, label="Best Z:", pos=(14, 263))
-        self.best_z_val = wx.StaticText(self.panel, pos=(55, 263))
+        # self.best_z_val = wx.StaticText(self.panel, pos=(55, 263))
+        self.best_z_val = wx.TextCtrl(self.panel, size=(68, 20), pos=(55, 261), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
 
         self.best_hspd_text = wx.StaticText(self.panel, label="Best HSpd:", pos=(150, 210))
-        self.best_hspd_val = wx.StaticText(self.panel, pos=(215, 210))
+        # self.best_hspd_val = wx.StaticText(self.panel, pos=(215, 210))
+        self.best_hspd_val = wx.TextCtrl(self.panel, size=(68, 20), pos=(215, 208), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
 
         self.best_coins_text = wx.StaticText(self.panel, label="Best Coins:", pos=(150, 236))
-        self.best_coins_val = wx.StaticText(self.panel, pos=(215, 236))
+        # self.best_coins_val = wx.StaticText(self.panel, pos=(215, 236))
+        self.best_coins_val = wx.TextCtrl(self.panel, size=(68, 20), pos=(215, 234), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
 
         self.best_fyaw_text = wx.StaticText(self.panel, label="Best FYaw:", pos=(150, 263))
-        self.best_fyaw_val = wx.StaticText(self.panel, pos=(215, 263))
+        # self.best_fyaw_val = wx.StaticText(self.panel, pos=(215, 263))
+        self.best_fyaw_val = wx.TextCtrl(self.panel, size=(68, 20), pos=(215, 261), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
 
         self.best_actn_text = wx.StaticText(self.panel, label="Best Action:", pos=(307, 263))
-        self.best_actn_val = wx.StaticText(self.panel, pos=(373, 263))
+        # self.best_actn_val = wx.StaticText(self.panel, pos=(373, 263))
+        self.best_actn_val = wx.TextCtrl(self.panel, size=(170, 20), pos=(373, 261), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
         # End Output Box
+
+        # Hotkeys
+        ID_BRUTEFORCE_HOTKEY = wx.NewIdRef()
+        ID_UNFOCUS_HOTKEY = wx.NewIdRef()
+
+        accelerators = [wx.AcceleratorEntry() for x in range(2)] # set range to number of hotkeys
+        accelerators[0].Set(wx.ACCEL_NORMAL, ord('B'), ID_BRUTEFORCE_HOTKEY)
+        accelerators[1].Set(wx.ACCEL_NORMAL, wx.WXK_ESCAPE, ID_UNFOCUS_HOTKEY)
+        accel=wx.AcceleratorTable(accelerators)
+        self.SetAcceleratorTable(accel)
+        # End Hotkeys
 
         # Bindings
         self.brute_button = wx.Button(self.panel, label="Bruteforce!", pos=(275, 300), size=(165, 50))
         self.Bind(wx.EVT_BUTTON, self.StartBruteforce, self.brute_button)
 
-        # entries = [wx.AcceleratorEntry() for i in range(1)]
-
-        # entries[0].Set(wx.ACCEL_NORMAL, ord('B'), wx.EVT_MENU)
-
-        # accel = wx.AcceleratorTable(entries)
-        # self.SetAcceleratorTable(accel)
+        self.Bind(wx.EVT_MENU, self.StartBruteforce, id=ID_BRUTEFORCE_HOTKEY)
+        self.Bind(wx.EVT_MENU, self.Unfocus, id=ID_UNFOCUS_HOTKEY)
 
         self.Bind(wx.EVT_CLOSE, self.OnWindowClose)
         # End Bindings
+
+        self.SetFocus()
 
     # Setter Functions
     def SetGame(self, event):
@@ -204,6 +220,9 @@ class MainFrame(wx.Frame):
             common.bruteforcing = False
             self.UpdateOutput()
         else:
+            self.brute_button.SetLabel("Stop Bruteforcing")
+            common.bruteforcing = True
+
             print("--- Configuration ---")
             self.SetGame(event)
             self.SetRange(event)
@@ -225,8 +244,6 @@ class MainFrame(wx.Frame):
             self.brute_thread = threading.Thread(target=Bruteforcer.bruteforce, args=(common.frame_queue,), daemon=True)
             self.brute_thread.start()
 
-            self.brute_button.SetLabel("Stop Bruteforcing")
-            common.bruteforcing = True
             self.UpdateOutput()
 
     def UpdateOutput(self, event=None):
@@ -241,6 +258,8 @@ class MainFrame(wx.Frame):
             self.best_fyaw_val.SetForegroundColour(wx.Colour(31, 88, 181))
             self.best_actn_val.SetForegroundColour(wx.Colour(31, 88, 181))
 
+            # Don't try to set these if function is called
+            # before bruteforcing has actually started
             if event != None:
                 vals = event.vals
                 self.best_x_val.SetLabel(f"{vals.x:.5f}")
@@ -259,6 +278,10 @@ class MainFrame(wx.Frame):
             self.best_coins_val.SetForegroundColour(wx.Colour(0, 0, 0))
             self.best_fyaw_val.SetForegroundColour(wx.Colour(0, 0, 0))
             self.best_actn_val.SetForegroundColour(wx.Colour(0, 0, 0))
+
+    def Unfocus(self, event):
+        """Unfocuses current menu item"""
+        self.SetFocus()
 
     def OnWindowClose(self, event):
         config.SaveConfig(self)
