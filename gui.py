@@ -1,9 +1,11 @@
 import threading
 import queue
+from time import sleep
 import wx
 import wx.lib.filebrowsebutton as filebrowse
 
 from actions import *
+import config
 import common
 from script_options import ScriptOptions as so
 
@@ -67,26 +69,20 @@ class MainFrame(wx.Frame):
         self.fyaw_txtbox = wx.TextCtrl(self.panel, size=(44, -1), pos=(187, 153), style=wx.TE_CENTRE)
         self.fyaw_weight_txtbox = wx.TextCtrl(self.panel, value="1", size=(30, -1), pos=(270, 153), style=wx.TE_CENTRE)
 
-        wx.StaticText(self.panel, label="Action:", pos=(307, 157))
+        wx.StaticText(self.panel, label="Action:", pos=(313, 134))
         choices = list(actions.keys())
         # Blank placeholder option for indicating no action
         choices[0] = ""
         # TODO: implement proper auto-complete
-        self.actn_dropdown = wx.ComboBox(self.panel, size=(170, -1), pos=(350, 153), choices=choices)
+        self.actn_dropdown = wx.ComboBox(self.panel, size=(170, -1), pos=(356, 130), choices=choices)
         
-        # TODO: implement this
-        # wx.StaticText(self.panel, label="Unconditional Option:", pos=(420, 38))
-        # self.uncond_opt_txtbox =
+        wx.StaticText(self.panel, label="Conditional Options:", pos=(545, 95))
+        self.cond_opt_txtbox = wx.TextCtrl(self.panel, size=(170, 65), pos=(545, 112), style=wx.TE_MULTILINE)
         # End Fitness Options Box
 
         # Output Box
         wx.StaticBox(self.panel, label="Output", size=(725, 105), pos=(5, 185))
         self.Bind(common.EVT_UPDATE_OUTPUT, self.UpdateOutput)
-
-        font1 = wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.NORMAL, underline=True)
-        font2 = wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.NORMAL)
-
-        wx.StaticBox(self.panel, label="Output", size=(725, 105), pos=(5, 185))
 
         self.best_x_text = wx.StaticText(self.panel, label="Best X:", pos=(14, 210))
         self.best_x_val = wx.StaticText(self.panel, pos=(55, 210))
@@ -108,32 +104,23 @@ class MainFrame(wx.Frame):
 
         self.best_actn_text = wx.StaticText(self.panel, label="Best Action:", pos=(307, 263))
         self.best_actn_val = wx.StaticText(self.panel, pos=(373, 263))
-
-        self.best_x_text.SetFont(font1)
-        self.best_x_val.SetFont(font2)
-        self.best_y_text.SetFont(font1)
-        self.best_y_val.SetFont(font2)
-        self.best_z_text.SetFont(font1)
-        self.best_z_val.SetFont(font2)
-        self.best_hspd_text.SetFont(font1)
-        self.best_hspd_val.SetFont(font2)
-        self.best_coins_text.SetFont(font1)
-        self.best_coins_val.SetFont(font2)
-        self.best_fyaw_text.SetFont(font1)
-        self.best_fyaw_val.SetFont(font2)
-        self.best_actn_text.SetFont(font1)
-        self.best_actn_val.SetFont(font2)
-        
-        # choices = list(actions.keys())
         # End Output Box
 
+        # Bindings
         self.brute_button = wx.Button(self.panel, label="Bruteforce!", pos=(275, 300), size=(165, 50))
         self.Bind(wx.EVT_BUTTON, self.StartBruteforce, self.brute_button)
 
+        # entries = [wx.AcceleratorEntry() for i in range(1)]
+
+        # entries[0].Set(wx.ACCEL_NORMAL, ord('B'), wx.EVT_MENU)
+
+        # accel = wx.AcceleratorTable(entries)
+        # self.SetAcceleratorTable(accel)
+
         self.Bind(wx.EVT_CLOSE, self.OnWindowClose)
+        # End Bindings
 
     # Setter Functions
-
     def SetGame(self, event):
         if self.libsm64_browse.GetValue() != "":
             so.set_game(self.libsm64_browse.GetValue())
@@ -194,89 +181,28 @@ class MainFrame(wx.Frame):
             so.set_des_actn(actions[actn])
         print('Des Action:', ("None", actn)[actn != ""])
 
-    # def SetUnconditionalOption(self, event):
-    #     so.set_unconditional_option(self.uncond_opt_txtbox.GetValue())
-    #     print(so.get_option_val('Unconditional Option:','uncond_opt'))
-
+    def SetConditionalOption(self, event):
+        opts = so.set_conditional_options(self.cond_opt_txtbox.GetValue())
+        # Ensure that we're not treating ints as bools or vice versa
+        if not (isinstance(opts, bool) and opts):
+            if isinstance(opts, bool) and opts == False:
+                print('Too many conditional options. Maximum allowed is 10.')
+            elif isinstance(opts, list) and opts[0] <= 10:
+                opts[1] = opts[1][0].strip("[]'") # can't put this inside the f-string :/
+                print(f'Banned keyword "{opts[1]}" found in statement #{opts[0]}.')  
+            else:
+                print('Invalid Input.')
+            return False
+        print('Conditional Option(s):', so.get_option_val('cond_opts'))
+        return True
     # End Setter Functions
 
-    # Config Functions
-
-    def LoadConfig(self):
-        with open('config.cfg', 'r') as file:
-            for line in file:
-                split_list = line.split('=')
-                # can't use match statement cause no py 3.10 :(
-                if split_list[0] == 'game':
-                    self.libsm64_browse.SetValue(split_list[1].replace('\n', ''))
-                elif split_list[0] == 'start_frame':
-                    self.start_frame_txtbox.SetValue(split_list[1].replace('\n', ''))
-                elif split_list[0] == 'end_frame':
-                    self.end_frame_txtbox.SetValue(split_list[1].replace('\n', ''))
-                elif split_list[0] == 'input_m64':
-                    self.m64_browse.SetValue(split_list[1].replace('\n', ''))
-                elif split_list[0] == 'temp':
-                    self.temp_txtbox.SetValue(split_list[1].replace('\n', ''))
-                elif split_list[0] == 'regularization':
-                    if split_list[1] == 'True':
-                        self.regularization_checkbox.SetValue(True)
-                    if split_list[1] == 'False':
-                        self.regularization_checkbox.SetValue(False)
-                elif split_list[0] == 'des_x':
-                    self.x_txtbox.SetValue(split_list[1].replace('\n', ''))
-                elif split_list[0] == 'des_y':
-                    self.y_txtbox.SetValue(split_list[1].replace('\n', ''))
-                elif split_list[0] == 'des_z':
-                    self.z_txtbox.SetValue(split_list[1].replace('\n', ''))
-                elif split_list[0] == 'des_hspd':
-                    self.hspd_txtbox.SetValue(split_list[1].replace('\n', ''))
-                elif split_list[0] == 'des_coins':
-                    self.coins_txtbox.SetValue(split_list[1].replace('\n', ''))
-                elif split_list[0] == 'des_fyaw':
-                    self.fyaw_txtbox.SetValue(split_list[1].replace('\n', ''))
-                elif split_list[0] == 'des_actn':
-                    self.actn_dropdown.SetValue(split_list[1].replace('\n', ''))
-        print('Config Loaded')
-
-    def SaveConfig(self):
-        with open('config.cfg', 'w+') as file:
-            file.write(f"game={self.libsm64_browse.GetValue()}\n")
-            file.write(f"start_frame={self.start_frame_txtbox.GetValue()}\n")
-            file.write(f"end_frame={self.end_frame_txtbox.GetValue()}\n")
-            file.write(f"input_m64={self.m64_browse.GetValue()}\n")
-            file.write(f"temp={self.temp_txtbox.GetValue()}\n")
-            file.write(f"regularization={self.regularization_checkbox.GetValue()}\n")
-            file.write(f"des_x={self.x_txtbox.GetValue()}\n")
-            file.write(f"des_y={self.y_txtbox.GetValue()}\n")
-            file.write(f"des_z={self.z_txtbox.GetValue()}\n")
-            file.write(f"des_hspd={self.hspd_txtbox.GetValue()}\n")
-            file.write(f"des_coins={self.coins_txtbox.GetValue()}\n")
-            file.write(f"des_fyaw={self.fyaw_txtbox.GetValue()}\n")
-            file.write(f"des_actn={self.actn_dropdown.GetValue()}")
-            # file.write(f"game={(str(so.get_option_val('game'))[6:])[:-2] if so.get_option_val('game') != None else ''}\n")
-            # file.write(f"start_frame={str(so.get_option_val('start_frame')) if so.get_option_val('start_frame') != None else ''}\n")
-            # file.write(f"end_frame={str(so.get_option_val('end_frame')) if so.get_option_val('end_frame') != None else ''}\n")
-            # file.write(f"input_m64={str(so.get_option_val('input_m64')) if so.get_option_val('input_m64') != None else ''}\n")
-            # file.write(f"temp={str(so.get_option_val('temp')) if so.get_option_val('temp') != None else ''}\n")
-            # file.write(f"regularization={str(so.get_option_val('regularization'))}\n")
-            # file.write(f"des_x={str(so.get_option_val('des_x')) if so.get_option_val('des_x') != None else ''}\n")
-            # file.write(f"des_y={str(so.get_option_val('des_y')) if so.get_option_val('des_y') != None else ''}\n")
-            # file.write(f"des_z={str(so.get_option_val('des_z')) if so.get_option_val('des_z') != None else ''}\n")
-            # file.write(f"des_hspd={str(so.get_option_val('des_hspd')) if so.get_option_val('des_hspd') != None else ''}\n")
-            # file.write(f"des_coins={str(so.get_option_val('des_coins')) if so.get_option_val('des_coins') != None else ''}\n")
-            # file.write(f"des_fyaw={str(so.get_option_val('des_fyaw')) if so.get_option_val('des_fyaw') != None else ''}\n")
-            # file.write(f"DesActn={so.get_option_val('des_actn')}\n")
-            # file.write(f"UncondOpt={so.get_option_val('uncond_opt')}")
-        print('Config Saved')
-
-    # End Config Functions
-
-    # Run setter functions and start bruteforcing with
-    # specified (or default, if not specified) options
     def StartBruteforce(self, event):
+        """Run setter functions and start bruteforcing with specified (or default, if not specified) options"""
         if common.bruteforcing:
             self.brute_button.SetLabel("Bruteforce!")
             common.bruteforcing = False
+            self.UpdateOutput()
         else:
             print("--- Configuration ---")
             self.SetGame(event)
@@ -289,32 +215,54 @@ class MainFrame(wx.Frame):
             self.SetDesCoins(event)
             self.SetDesFYaw(event)
             self.SetDesActn(event)
+            cond_opt_res = self.SetConditionalOption(event)
+            if not cond_opt_res:
+                return
             print("---------------------")
 
             # Start bruteforcing
             from user_defined_script_class import Bruteforcer
-            self.brute_thread = threading.Thread(target=Bruteforcer.bruteforce, args=(frame_queue,), daemon=True)
+            self.brute_thread = threading.Thread(target=Bruteforcer.bruteforce, args=(common.frame_queue,), daemon=True)
             self.brute_thread.start()
 
             self.brute_button.SetLabel("Stop Bruteforcing")
             common.bruteforcing = True
+            self.UpdateOutput()
 
-    def UpdateOutput(self, event):
-        # TODO: make only the active fitness options print
-        vals = event.vals
-        
-        self.best_x_val.SetLabel(f"{vals.x:.5f}")
-        self.best_y_val.SetLabel(f"{vals.y:.5f}")
-        self.best_z_val.SetLabel(f"{vals.z:.5f}")
-        self.best_hspd_val.SetLabel(f"{vals.hspd:.5f}")
-        self.best_coins_val.SetLabel(f"{vals.coins}")
-        self.best_fyaw_val.SetLabel(f"{vals.fyaw}")
-        self.best_actn_val.SetLabel(f'{GetActionName(vals.actn)}')
+    def UpdateOutput(self, event=None):
+        """Update bruteforcer output on GUI"""
+        # TODO?: make only the active fitness options print
+        if common.bruteforcing:
+            self.best_x_val.SetForegroundColour(wx.Colour(31, 88, 181))
+            self.best_y_val.SetForegroundColour(wx.Colour(31, 88, 181))
+            self.best_z_val.SetForegroundColour(wx.Colour(31, 88, 181))
+            self.best_hspd_val.SetForegroundColour(wx.Colour(31, 88, 181))
+            self.best_coins_val.SetForegroundColour(wx.Colour(31, 88, 181))
+            self.best_fyaw_val.SetForegroundColour(wx.Colour(31, 88, 181))
+            self.best_actn_val.SetForegroundColour(wx.Colour(31, 88, 181))
+
+            if event != None:
+                vals = event.vals
+                self.best_x_val.SetLabel(f"{vals.x:.5f}")
+                self.best_y_val.SetLabel(f"{vals.y:.5f}")
+                self.best_z_val.SetLabel(f"{vals.z:.5f}")
+                self.best_hspd_val.SetLabel(f"{vals.hspd:.5f}")
+                self.best_coins_val.SetLabel(f"{vals.coins}")
+                self.best_fyaw_val.SetLabel(f"{vals.fyaw}")
+                self.best_actn_val.SetLabel(f'{GetActionName(vals.actn)}')
+        else:
+            self.Refresh()
+            self.best_x_val.SetForegroundColour(wx.Colour(0, 0, 0))
+            self.best_y_val.SetForegroundColour(wx.Colour(0, 0, 0))
+            self.best_z_val.SetForegroundColour(wx.Colour(0, 0, 0))
+            self.best_hspd_val.SetForegroundColour(wx.Colour(0, 0, 0))
+            self.best_coins_val.SetForegroundColour(wx.Colour(0, 0, 0))
+            self.best_fyaw_val.SetForegroundColour(wx.Colour(0, 0, 0))
+            self.best_actn_val.SetForegroundColour(wx.Colour(0, 0, 0))
 
     def OnWindowClose(self, event):
-        self.SaveConfig()
+        config.SaveConfig(self)
         self.Destroy()
-
 # End Main Window
 
 if __name__ == "__main__":
@@ -322,6 +270,6 @@ if __name__ == "__main__":
     win = MainFrame(None, -1, "SM64 Bruteforce GUI", size=(750,400))
     win.SetIcon(wx.Icon('DorrieChamp.ico'))
     win.Show(True)
-    win.LoadConfig()
+    config.LoadConfig(win)
     common.frame_queue.put(win)
     app.MainLoop()

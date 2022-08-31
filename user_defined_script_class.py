@@ -120,9 +120,16 @@ class Bruteforcer:
             fitness += so.get_option_weight(option) * abs(fitness_opt_vals[option] - eval(list(locals())[i]))
 
         # If the desired action isn't achieved, no improvement is made to fitness
-        if so.get_option_val('des_actn') != None and so.get_option_val('des_actn') != '':
-            if actn != so.get_option_val('des_actn'):
+        des_actn = so.get_option_val('des_actn')
+        if des_actn != None and des_actn != '':
+            if actn != des_actn:
                 return 99999
+
+        # Apply user-defined conditional statements
+        cond_opts = so.get_option_val('cond_opts')
+        if cond_opts != None and cond_opts != '':
+            for opt in cond_opts:
+                fitness += eval(opt)
             
         return fitness
 
@@ -178,7 +185,7 @@ class Bruteforcer:
                 # Array to keep track of changes made to the m64.
                 # Make some random changes, check fitness, revert if not good enough.
                 changes = []
-                if i % 1000 == 0:
+                if i % 500 == 0:
                     print(f'{i}. {cur_val:.4f}')
                     # Send data to GUI through event
                     common.PostEventWrapper(queue.queue[0], common.UpdateOutputEvent(vals=Bruteforcer.current_values))
@@ -242,6 +249,7 @@ class Bruteforcer:
                                                   Bruteforcer.current_values.z, Bruteforcer.current_values.hspd, 
                                                   Bruteforcer.current_values.coins, Bruteforcer.current_values.fyaw, 
                                                   Bruteforcer.current_values.actn)
+                # return
                 if fit == 99999:
                     Bruteforcer.current_values.fitness = 99990
                 if so.get_regularization():
