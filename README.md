@@ -7,7 +7,7 @@ for now, just run `gui.py` to start the program. fill in the config parameters a
 # Dependencies
 - **Python 3.7-3.9**
 - **[wxPython 4.1.1](https://www.wxpython.org/pages/downloads/)**
-- **[Wafel Python Bindings](https://github.com/branpk/wafel)**
+- **[Wafel Python Bindings](https://github.com/branpk/wafel#wafel-as-a-library)**
 
 # Plans / Ideas
 - gui idea: while bruteforcing, have occasional messages scroll across the window
