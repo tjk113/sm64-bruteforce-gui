@@ -41,11 +41,11 @@ class ScriptOptions:
 
     def set_des_coords(des_x: float = None, des_y: float = None, des_z: float = None):
         """Set desired x, y, and/or z coordinates at end_frame (parameters should be named in call)"""
-        if des_x:
+        if des_x != None:
             ScriptOptions.fitness_options['des_x'] = des_x
-        if des_y:
+        if des_y != None:
             ScriptOptions.fitness_options['des_y'] = des_y
-        if des_z:
+        if des_z != None:
             ScriptOptions.fitness_options['des_z'] = des_z
 
     def set_des_coins(des_coins: int):

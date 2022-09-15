@@ -6,7 +6,7 @@ for now, just run `gui.py` to start the program. fill in the config parameters a
 
 # Dependencies
 - **Python 3.7-3.9**
-- **[wxPython 4.1.1](https://www.wxpython.org/pages/downloads/)**
+- **[wxPython 4.2.0](https://www.wxpython.org/pages/downloads/)**
 - **[Wafel Python Bindings](https://github.com/branpk/wafel)**
 
 # Plans / Ideas

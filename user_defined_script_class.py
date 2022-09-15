@@ -10,13 +10,14 @@ from script_options import ScriptOptions as so
 
 class Bruteforcer:
 
-    # preset options for testing
-    # so.set_game('D:\\1A Wafel\\libsm64\\sm64_jp.dll')
-    # so.set_input_m64('D:\\1A TAS\\70ABC\\scale_the_mountain_2377 - copia.m64')
-    # so.set_output_m64('D:\\1A TAS\\70ABC\\tester.m64')
-    # so.set_range(72790, 72846)
-    # so.set_des_coords(1, 2, 3)
-    # so.set_des_hspd(50)
+    # def __init__():
+    #     # preset options for testing
+    #     so.set_game('D:\\1A Wafel\\libsm64\\sm64_jp.dll')
+    #     so.set_input_m64('D:\\1A TAS\\70ABC\\scale_the_mountain_2377 - copia.m64')
+    #     so.set_output_m64('D:\\1A TAS\\70ABC\\tester.m64')
+    #     so.set_range(72790, 72846)
+    #     so.set_des_coords(1, 2, 3)
+    #     so.set_des_hspd(50)
 
     game = None
     filename = None

@@ -113,6 +113,8 @@ class MainFrame(wx.Frame):
         self.best_actn_val = wx.TextCtrl(self.panel, size=(170, 20), pos=(373, 261), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
         # End Output Box
 
+        self.timer = wx.Timer(self)
+
         # Hotkeys
         ID_BRUTEFORCE_HOTKEY = wx.NewIdRef()
         ID_UNFOCUS_HOTKEY = wx.NewIdRef()
@@ -130,6 +132,8 @@ class MainFrame(wx.Frame):
 
         self.Bind(wx.EVT_MENU, self.StartBruteforce, id=ID_BRUTEFORCE_HOTKEY)
         self.Bind(wx.EVT_MENU, self.Unfocus, id=ID_UNFOCUS_HOTKEY)
+
+        # self.Bind(wx.EVT_TIMER, self.UpdateTimer)
 
         self.Bind(wx.EVT_CLOSE, self.OnWindowClose)
         # End Bindings
@@ -162,12 +166,20 @@ class MainFrame(wx.Frame):
     def SetRegularization(self, event):
         so.set_regularization(self.regularization_checkbox.GetValue())
         print('Regularize Inputs:', self.regularization_checkbox.GetValue())
-    
+
     def SetDesCoords(self, event):
-        if self.x_txtbox.GetValue() != "" and self.y_txtbox.GetValue() != "" and self.z_txtbox.GetValue() != "":
-            so.set_des_coords(float(self.x_txtbox.GetValue()), float(self.y_txtbox.GetValue()), float(self.z_txtbox.GetValue()))
+        if self.x_txtbox.GetValue() != "":
+            so.set_des_coords(des_x=float(self.x_txtbox.GetValue()))
+        if self.y_txtbox.GetValue() != "":
+            so.set_des_coords(des_y=float(self.y_txtbox.GetValue()))
+        if self.z_txtbox.GetValue() != "":
+            so.set_des_coords(des_z=float(self.z_txtbox.GetValue()))
+        
+        if self.x_weight_txtbox.GetValue() != "":
             so.set_option_weight('des_x', float(self.x_weight_txtbox.GetValue()))
+        if self.y_weight_txtbox.GetValue() != "":
             so.set_option_weight('des_y', float(self.y_weight_txtbox.GetValue()))
+        if self.z_weight_txtbox.GetValue() != "":
             so.set_option_weight('des_z', float(self.z_weight_txtbox.GetValue()))
         print('Des X:', str(so.get_option_val('des_x')), "(" + ("N/A", str(so.get_option_weight('des_x')))[so.get_option_weight('des_x') != ""] + ")", 
               'Des Y:', str(so.get_option_val('des_y')), "(" + ("N/A", str(so.get_option_weight('des_y')))[so.get_option_weight('des_y') != ""] + ")",
@@ -216,10 +228,12 @@ class MainFrame(wx.Frame):
     def StartBruteforce(self, event):
         """Run setter functions and start bruteforcing with specified (or default, if not specified) options"""
         if common.bruteforcing:
+            # self.timer.Pause()
             self.brute_button.SetLabel("Bruteforce!")
             common.bruteforcing = False
             self.UpdateOutput()
         else:
+            # self.timer.Start(1000)
             self.brute_button.SetLabel("Stop Bruteforcing")
             common.bruteforcing = True
 
@@ -279,11 +293,16 @@ class MainFrame(wx.Frame):
             self.best_fyaw_val.SetForegroundColour(wx.Colour(0, 0, 0))
             self.best_actn_val.SetForegroundColour(wx.Colour(0, 0, 0))
 
+    # def UpdateTimer(self, event):
+    #     """Updates the bruteforcing timer on the GUI"""
+    #     self.timer.something_idk
+
     def Unfocus(self, event):
         """Unfocuses current menu item"""
         self.SetFocus()
 
     def OnWindowClose(self, event):
+        """Saves current parameters and kills app"""
         config.SaveConfig(self)
         self.Destroy()
 # End Main Window
