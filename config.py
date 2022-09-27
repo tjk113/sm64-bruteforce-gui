@@ -36,6 +36,18 @@ def LoadConfig(frame):
                     frame.actn_dropdown.SetValue(split_list[1].replace('\n', ''))
                 elif split_list[0] == 'cond_opts':
                     frame.cond_opt_txtbox.SetValue(split_list[1].replace('\n', ''))
+                elif split_list[0] == 'des_x_weight':
+                    frame.x_weight_txtbox.SetValue(split_list[1].replace('\n', ''))
+                elif split_list[0] == 'des_y_weight':
+                    frame.y_weight_txtbox.SetValue(split_list[1].replace('\n', ''))
+                elif split_list[0] == 'des_z_weight':
+                    frame.z_weight_txtbox.SetValue(split_list[1].replace('\n', ''))
+                elif split_list[0] == 'des_hspd_weight':
+                    frame.hspd_weight_txtbox.SetValue(split_list[1].replace('\n', ''))
+                elif split_list[0] == 'des_coins_weight':
+                    frame.coins_weight_txtbox.SetValue(split_list[1].replace('\n', ''))
+                elif split_list[0] == 'des_fyaw_weight':
+                    frame.fyaw_weight_txtbox.SetValue(split_list[1].replace('\n', ''))
         print('Config Loaded')
 
 def SaveConfig(frame):
@@ -53,7 +65,13 @@ def SaveConfig(frame):
         file.write(f"des_coins={frame.coins_txtbox.GetValue()}\n")
         file.write(f"des_fyaw={frame.fyaw_txtbox.GetValue()}\n")
         file.write(f"des_actn={frame.actn_dropdown.GetValue()}\n")
-        file.write(f"cond_opts={frame.cond_opt_txtbox.GetValue()}")
+        file.write(f"cond_opts={frame.cond_opt_txtbox.GetValue()}\n")
+        file.write(f"des_x_weight={frame.x_weight_txtbox.GetValue()}\n")
+        file.write(f"des_y_weight={frame.y_weight_txtbox.GetValue()}\n")
+        file.write(f"des_z_weight={frame.z_weight_txtbox.GetValue()}\n")
+        file.write(f"des_hspd_weight={frame.hspd_weight_txtbox.GetValue()}\n")
+        file.write(f"des_coins_weight={frame.coins_weight_txtbox.GetValue()}\n")
+        file.write(f"des_fyaw_weight={frame.fyaw_weight_txtbox.GetValue()}")
         # file.write(f"game={(str(so.get_option_val('game'))[6:])[:-2] if so.get_option_val('game') != None else ''}\n")
         # file.write(f"start_frame={str(so.get_option_val('start_frame')) if so.get_option_val('start_frame') != None else ''}\n")
         # file.write(f"end_frame={str(so.get_option_val('end_frame')) if so.get_option_val('end_frame') != None else ''}\n")

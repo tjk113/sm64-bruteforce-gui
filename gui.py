@@ -86,27 +86,27 @@ class MainFrame(wx.Frame):
 
         self.best_x_text = wx.StaticText(self.panel, label="Best X:", pos=(14, 210))
         # self.best_x_val = wx.StaticText(self.panel, pos=(55, 210))
-        self.best_x_val = wx.TextCtrl(self.panel, size=(68, 20), pos=(55, 208), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
+        self.best_x_val = wx.TextCtrl(self.panel, size=(72, 20), pos=(55, 208), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
 
         self.best_y_text = wx.StaticText(self.panel, label="Best Y:", pos=(14, 236))
         # self.best_y_val = wx.StaticText(self.panel, pos=(55, 236))
-        self.best_y_val = wx.TextCtrl(self.panel, size=(68, 20), pos=(55, 234), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
+        self.best_y_val = wx.TextCtrl(self.panel, size=(72, 20), pos=(55, 234), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
 
         self.best_z_text = wx.StaticText(self.panel, label="Best Z:", pos=(14, 263))
         # self.best_z_val = wx.StaticText(self.panel, pos=(55, 263))
-        self.best_z_val = wx.TextCtrl(self.panel, size=(68, 20), pos=(55, 261), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
+        self.best_z_val = wx.TextCtrl(self.panel, size=(72, 20), pos=(55, 261), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
 
         self.best_hspd_text = wx.StaticText(self.panel, label="Best HSpd:", pos=(150, 210))
         # self.best_hspd_val = wx.StaticText(self.panel, pos=(215, 210))
-        self.best_hspd_val = wx.TextCtrl(self.panel, size=(68, 20), pos=(215, 208), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
+        self.best_hspd_val = wx.TextCtrl(self.panel, size=(72, 20), pos=(215, 208), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
 
         self.best_coins_text = wx.StaticText(self.panel, label="Best Coins:", pos=(150, 236))
         # self.best_coins_val = wx.StaticText(self.panel, pos=(215, 236))
-        self.best_coins_val = wx.TextCtrl(self.panel, size=(68, 20), pos=(215, 234), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
+        self.best_coins_val = wx.TextCtrl(self.panel, size=(72, 20), pos=(215, 234), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
 
         self.best_fyaw_text = wx.StaticText(self.panel, label="Best FYaw:", pos=(150, 263))
         # self.best_fyaw_val = wx.StaticText(self.panel, pos=(215, 263))
-        self.best_fyaw_val = wx.TextCtrl(self.panel, size=(68, 20), pos=(215, 261), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
+        self.best_fyaw_val = wx.TextCtrl(self.panel, size=(72, 20), pos=(215, 261), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
 
         self.best_actn_text = wx.StaticText(self.panel, label="Best Action:", pos=(307, 263))
         # self.best_actn_val = wx.StaticText(self.panel, pos=(373, 263))
