@@ -1,4 +1,7 @@
-# taken from 'Actions.lua' in the InputDirection lua
+"""
+List of in-game action names and associated memory addresses (taken from 'Actions.lua' in the InputDirection lua)
+"""
+
 actions = {
 	"uninitialized": 0x00000000,
 	"idle": 0x0C400201,

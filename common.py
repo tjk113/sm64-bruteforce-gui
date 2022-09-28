@@ -1,3 +1,7 @@
+"""
+Common objects used to send data between the GUI and bruteforcing script
+"""
+
 import queue
 import wx
 import wx.lib.newevent

@@ -1,3 +1,7 @@
+"""
+Handles the internal setting and getting of user-defined script options
+"""
+
 import keyword
 import wafel
 

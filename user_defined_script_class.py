@@ -1,4 +1,7 @@
-import queue
+"""
+Handles bruteforcing and sending output data back to GUI
+"""
+
 from random import *
 from dataclasses import dataclass
 import wafel
@@ -68,9 +71,9 @@ class Bruteforcer:
 
             # print periodically
             if frame % 50000 == 0:
-                print("Frame %05d stars %02d" % (frame, Bruteforcer.game.read('gMarioState.numStars')))
+                print('Frame %05d stars %02d' % (frame, Bruteforcer.game.read('gMarioState.numStars')))
             if frame == Bruteforcer.start_frame:
-                print("---bruteforce start---")
+                print('---bruteforce start---')
                 print(f"{Bruteforcer.game.read('gMarioState.action')}")
                 Bruteforcer.startst = Bruteforcer.game.save_state()
                 break
