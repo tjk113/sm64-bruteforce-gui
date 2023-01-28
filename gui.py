@@ -324,7 +324,7 @@ if __name__ == '__main__':
     app = wx.App()
     win = MainFrame(None, -1, f'SM64 Bruteforce GUI {version}', size=(750,400))
     # win.SetIcon(wx.Icon(path.abspath('SM64BruteforceGUI.exe')+';0', wx.BITMAP_TYPE_ICO)) # trying to make exe icons stuff work
-    win.SetIcon(wx.Icon('DorrieChamp.ico'))
+    win.SetIcon(wx.Icon('img\\DorrieChamp.ico'))
     win.Show(True)
     config.LoadConfig(win)
     common.frame_queue.put(win)
