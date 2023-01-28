@@ -107,11 +107,11 @@ class MainFrame(wx.Frame):
         self.best_fyaw_text = wx.StaticText(self.panel, label='Best FYaw:', pos=(150, 263))
         self.best_fyaw_val = wx.TextCtrl(self.panel, size=(72, 20), pos=(215, 261), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
 
-        self.best_actn_text = wx.StaticText(self.panel, label='Best Action:', pos=(307, 210))
-        self.best_actn_val = wx.TextCtrl(self.panel, size=(170, 20), pos=(375, 208), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
+        self.best_actn_text = wx.StaticText(self.panel, label='Best Action:', pos=(307, 221))
+        self.best_actn_val = wx.TextCtrl(self.panel, size=(167, 20), pos=(375, 219), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
 
-        self.best_fitn_text = wx.StaticText(self.panel, label='Best Fitness:', pos=(307, 236))
-        self.best_fitn_val = wx.TextCtrl(self.panel, size=(72, 20), pos=(375, 234), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
+        self.best_fitn_text = wx.StaticText(self.panel, label='Best Fitness:', pos=(307, 248))
+        self.best_fitn_val = wx.TextCtrl(self.panel, size=(72, 20), pos=(375, 246), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
         # End Output Box
 
         # Timer
@@ -261,7 +261,7 @@ class MainFrame(wx.Frame):
             print('---------------------')
 
             # Start bruteforcing
-            from user_defined_script_class import Bruteforcer
+            from user_defined_script import Bruteforcer
             self.brute_thread = threading.Thread(target=Bruteforcer.bruteforce, args=(common.frame_queue,), daemon=True)
             self.brute_thread.start()
 
