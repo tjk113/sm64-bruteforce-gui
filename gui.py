@@ -143,10 +143,9 @@ class MainFrame(wx.Frame):
         # We use a lambda here so that the event's parameters are in scope for the DisplayErrorWindow callback
         self.Bind(common.EVT_WAFEL_ERROR, lambda evt: self.DisplayErrorWindow(evt.exception_type, evt.exception_value, evt.exception_traceback))
         sys.excepthook = self.DisplayErrorWindow
-        # sys.tracebacklimit = 0 # prevents printing the whole traceback in the error message window
+        sys.tracebacklimit = 0 # prevents printing the whole traceback in the error message window
 
         self.Bind(wx.EVT_CLOSE, self.OnWindowClose)
-
         # End Bindings
 
         self.SetFocus()
