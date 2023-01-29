@@ -287,7 +287,7 @@ class MainFrame(wx.Frame):
 
     def StartStopBruteforce(self, event=None):
         """Run setter functions and start bruteforcing with specified (or default, if not specified) options, or stop if already running"""
-        self.Unfocus()
+        self.Unfocus(event)
 
         if common.bruteforcing:
             self.timer.Stop()
@@ -364,8 +364,8 @@ class MainFrame(wx.Frame):
 
     def UpdateTimer(self, event):
         """Updates the time elapsed on the GUI"""
-        cur_time = time.strptime(str(int(time.time() - self.start_time)), '%S') # Only take the tens place (seconds)
-        cur_time = time.strftime('%H:%M:%S', cur_time)
+        time_elapsed = time.gmtime(int(time.time() - self.start_time))
+        cur_time = time.strftime('%H:%M:%S', time_elapsed)
         self.timer_text.SetLabel(f'Time elapsed: {cur_time}')
     
     # https://stackoverflow.com/a/59687640
@@ -400,7 +400,7 @@ class MainFrame(wx.Frame):
         dialog_box.ShowModal()
         dialog_box.Destroy()
 
-    def Unfocus(self):
+    def Unfocus(self, event):
         """Unfocuses current menu item"""
         self.SetFocus()
 

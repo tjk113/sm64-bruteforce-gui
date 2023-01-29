@@ -7,6 +7,6 @@ freeze(
     windows = [{'script': 'gui.py',
                 'icon_resources': [(0, 'img\\DorrieChamp.ico'), (1, 'img\\DorrieChamp.ico')],
                 'dest_base': 'SM64BruteforceGUI'}],
-    zipfile = None,
+    zipfile = 'library.zip',
     version_info = {'version': '1.0'}
 )
