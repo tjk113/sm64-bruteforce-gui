@@ -158,6 +158,7 @@ class MainFrame(wx.Frame):
             so.set_game(libsm64)
         if common.print_to_stdout:
             print('Game:', so.get_option_val('game'))
+        return not isinstance(so.get_option_val('game'), type(None))
 
     def SetRange(self):
         """Set frame range from GUI"""
@@ -168,6 +169,7 @@ class MainFrame(wx.Frame):
         if common.print_to_stdout:
             print('Start Frame:', so.get_option_val('start_frame'), 'End Frame:', 
                 so.get_option_val('end_frame'))
+        return (not isinstance(so.get_option_val('start_frame'), type(None)) and not isinstance(so.get_option_val('end_frame'), type(None)))
 
     def SetM64(self):
         """Set M64 path from GUI"""
@@ -177,6 +179,7 @@ class MainFrame(wx.Frame):
             so.set_output_m64(m64[:-4] + '.bruteforced.m64')
         if common.print_to_stdout:
             print('Input .m64:', so.get_option_val('input_m64'))
+        return not isinstance(so.get_option_val('input_m64'), type(None))
 
     def SetTemp(self):
         """Set starting bruteforce temperature from GUI"""
@@ -185,6 +188,7 @@ class MainFrame(wx.Frame):
             so.set_temp(float(temp))
         if common.print_to_stdout:
             print('Starting Temperature:', so.get_option_val('temp'))
+        return not isinstance(so.get_option_val('temp'), type(None))
 
     def SetRegularization(self):
         """Set bruteforce regularization option from GUI"""
@@ -219,6 +223,7 @@ class MainFrame(wx.Frame):
             print('Des X:', str(so.get_option_val('des_x')), '(' + ('N/A', str(so.get_option_weight('des_x')))[so.get_option_weight('des_x') != ''] + ')', 
                   'Des Y:', str(so.get_option_val('des_y')), '(' + ('N/A', str(so.get_option_weight('des_y')))[so.get_option_weight('des_y') != ''] + ')',
                   'Des Z:', str(so.get_option_val('des_z')), '(' + ('N/A', str(so.get_option_weight('des_z')))[so.get_option_weight('des_z') != ''] + ')')
+        return (not isinstance(so.get_option_val('des_x'), type(None)) and not isinstance(so.get_option_val('des_y'), type(None)) and not isinstance(so.get_option_val('des_z'), type(None)))
 
     def SetDesHSpd(self):
         """Set goal horizontal speed from GUI"""
@@ -233,6 +238,7 @@ class MainFrame(wx.Frame):
                 self.hspd_weight_txtbox.SetValue('1')
         if common.print_to_stdout:
             print('Des HSpd:', str(so.get_option_val('des_hspd')), '(' + ('N/A', str(so.get_option_weight('des_hspd')))[so.get_option_weight('des_hspd') != ''] + ')')
+        return not isinstance(so.get_option_val('des_hspd'), type(None))
 
     def SetDesCoins(self):
         """Set goal coin count from GUI"""
@@ -245,6 +251,7 @@ class MainFrame(wx.Frame):
                 self.coins_weight_txtbox.SetValue('1')
         if common.print_to_stdout:
             print('Des Coins:', str(so.get_option_val('des_coins')), '(' + ('N/A', str(so.get_option_weight('des_coins')))[so.get_option_weight('des_coins') != ''] + ')')
+        return not isinstance(so.get_option_val('des_coins'), type(None))
 
     def SetDesFYaw(self):
         """Set goal facing yaw from GUI"""
@@ -259,6 +266,7 @@ class MainFrame(wx.Frame):
                 self.fyaw_weight_txtbox.SetValue('1')
         if common.print_to_stdout:
             print('Des FYaw:', str(so.get_option_val('des_fyaw')), '(' + ('N/A', str(so.get_option_weight('des_fyaw')))[so.get_option_weight('des_fyaw') != ''] + ')')
+        return not isinstance(so.get_option_val('des_fyaw'), type(None))
 
     def SetDesActn(self):
         """Set goal action from GUI"""
@@ -302,16 +310,18 @@ class MainFrame(wx.Frame):
 
             if common.print_to_stdout:
                 print('--- Configuration ---')
-            self.SetGame()
-            self.SetRange()
-            self.SetM64()
-            self.SetTemp()
-            self.SetRegularization()
-            self.SetDesCoords()
-            self.SetDesHSpd()
-            self.SetDesCoins()
-            self.SetDesFYaw()
-            self.SetDesActn()
+            # If any of these are None, error
+            if not self.SetGame()           \
+            or not self.SetRange()          \
+            or not self.SetM64()            \
+            or not self.SetTemp()           \
+            or not self.SetRegularization() \
+            or not self.SetDesCoords()      \
+            or not self.SetDesHSpd()        \
+            or not self.SetDesCoins()       \
+            or not self.SetDesFYaw()        \
+            or not self.SetDesActn():
+                raise ValueError('One or more required options not provided.')
             cond_opt_res = self.SetConditionalOptions()
             if not cond_opt_res:
                 return
@@ -384,6 +394,8 @@ class MainFrame(wx.Frame):
             else:
                 error_message = 'Cannot find specified m64 file.'
         # Conditional Option Error and Python Error
+        elif error_type == "<class 'TypeError'>":
+            error_message = str(exception_value)
         else:
             if error_type == "<class 'script_options.ConditionalOptionError'>":
                 error_message = 'Conditional Option Error:\n\n'
