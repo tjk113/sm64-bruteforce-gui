@@ -39,7 +39,7 @@ Adds `50` to the fitness function's return value if **Coins** is not equal to `9
 
 # Dependencies
 <ins>Note</ins>: these are only needed if you plan to run from source.
-- **[A compatible version of Python (version 3.7-3.9)](https://www.python.org/downloads/release/python-3916/)**
+- **[A compatible version of Python (version 3.7-3.9)](https://www.python.org/downloads/release/python-3916/)**<br>
 Be sure to add this Python version to your PATH, so pipenv can find it when setting up the virtual environment (if you already have a separate non-compatible Python installation, you'll have to specify that version in the following pip and pipenv commands. You can do so by using its full path followed by `-m` and then followed by the command, or you can rename the `python.exe` executable in the `Python39` folder and call it using that name).<br>
 Once a compatible version of Python is installed, run the following commands:<br>
     ```cmd
@@ -49,7 +49,7 @@ Once a compatible version of Python is installed, run the following commands:<br
     ```
 
     This will install [pipenv](https://github.com/pypa/pipenv), the virtual environment tool used by this project, and then use it to create the virtual environment with most of the Python dependencies necessary to run the project.
-- **[Wafel Python Bindings](https://github.com/branpk/wafel#wafel-as-a-library)**
+- **[Wafel Python Bindings](https://github.com/branpk/wafel#wafel-as-a-library)**<br>
 Download Wafel and unlock the libsm64 .dll files you plan to use using the Wafel GUI program. You will have to provide their respective unmodified SM64 ROMs in order to unlock them.<br>
 Once Wafel is installed and the desired .dll's are unlocked, run the following command:<br>
     ```cmd
