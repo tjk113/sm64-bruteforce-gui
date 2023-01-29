@@ -8,7 +8,7 @@ A graphical user interface for using bruteforcing scripts written for Super Mari
 ## **Config**
 - **libsm64 .dll**: Full path of the libsm64 .dll (be sure to use the correct region for your .m64 movie)
 - **Base .m64 file**: Full path of the Mupen .m64 movie file
-- **Start Frame, End Frame**: Start and end of the bruteforce frame range of the .m64 movie
+- **Start Frame, End Frame**: Start and end of the bruteforce frame range of the .m64 movie<br>
 <ins>Note</ins>: **Start Frame** and **End Frame** should be 0-index, meaning they should be `<mupen frame number> - 1` (unless you have 0-index statusbar enabled in Mupen's settings)
 - **Starting Temperature**: Initial temperature used for annealing (you can leave this at the default value of `0.4` if you don't know what this means)
 - **Regularize Inputs**: If enabled, the bruteforcer will try to reduce distance between joystick angles, EEEEE the "jittering" commonly seen in bruteforced inputs
