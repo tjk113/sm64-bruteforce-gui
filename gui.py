@@ -16,7 +16,7 @@ from actions import *
 import config
 import common
 
-version = 'v1.0'
+version = 'v1.0.1'
 window_title = f'SM64 Bruteforce GUI {version}'
 
 # Main Window
