@@ -1,35 +1,32 @@
 """
-Handles bruteforcing and sending output data back to GUI
+Handles bruteforcing and sending output data back to GUI (core bruteforce code written by fifdspence and Crackhex)
 """
 
-from random import *
 from dataclasses import dataclass
-import wafel
-import numpy as np
+from ctypes import c_uint16
+from queue import Queue
+from random import *
+import sys
 
+import numpy as np
+import wafel
+
+from script_options import ScriptOptions as so
 from actions import *
 import common
-from script_options import ScriptOptions as so
 
 class Bruteforcer:
 
-    # def __init__():
-    #     # preset options for testing
-    #     so.set_game('D:\\1A Wafel\\libsm64\\sm64_jp.dll')
-    #     so.set_input_m64('D:\\1A TAS\\70ABC\\scale_the_mountain_2377 - copia.m64')
-    #     so.set_output_m64('D:\\1A TAS\\70ABC\\tester.m64')
-    #     so.set_range(72790, 72846)
-    #     so.set_des_coords(1, 2, 3)
-    #     so.set_des_hspd(50)
-
-    game = None
-    filename = None
-    filename_new = None
-    start_frame = None
-    end_frame = None
-    power_on = None
-    m64 = None
-    startst = None
+    def __init__(self):
+        self.game = None
+        self.filename = None
+        self.filename_new = None
+        self.start_frame = None
+        self.end_frame = None
+        self.power_on = None
+        self.m64 = None
+        self.startst = None
+        self.error = None
 
     # Struct to hold the current best values
     @dataclass
@@ -44,45 +41,49 @@ class Bruteforcer:
         fitness: float
 
     # apply current m64 data, it doesn't happen itself
-    def set_inputs(game, inputs):
+    def set_inputs(self, game: wafel.Game, inputs: wafel.Input):
         game.write('gControllerPads[0].button', inputs.buttons)
         game.write('gControllerPads[0].stick_x', inputs.stick_x)
         game.write('gControllerPads[0].stick_y', inputs.stick_y)
 
-    def initialize():
-        # Get config options from ScriptOptions class
-        Bruteforcer.game = so.get_option_val('game')
-        Bruteforcer.filename = so.get_option_val('input_m64')
-        Bruteforcer.filename_new = so.get_option_val('output_m64')
-        Bruteforcer.start_frame = so.get_option_val('start_frame')
-        Bruteforcer.end_frame = so.get_option_val('end_frame')
+    def initialize(self):
+        """Initialize config options, load m64, create initial savestate, and fast forward to starting frame"""
+        self.game = wafel.Game(so.get_option_val('game'))
+        self.filename = so.get_option_val('input_m64')
+        self.filename_new = so.get_option_val('output_m64')
 
-         # Create a savestate slot
-        Bruteforcer.power_on = Bruteforcer.game.save_state()
-        Bruteforcer.m64 = wafel.load_m64(Bruteforcer.filename)
+        self.start_frame = so.get_option_val('start_frame')
+        self.end_frame = so.get_option_val('end_frame')
+
+        # Create a savestate slot
+        self.power_on = self.game.save_state()
+        self.m64 = wafel.load_m64(self.filename)
 
         # Run through the m64 and make a savestate at the beginning of the bruteforce window.
         # Also prints out number of stars just to make sure things are
         # working/no desyncs
-        print(f'Fast forwarding to frame {Bruteforcer.start_frame}...')
-        for frame in range(len(Bruteforcer.m64[1])):
-            Bruteforcer.set_inputs(Bruteforcer.game, Bruteforcer.m64[1][frame])
-            Bruteforcer.game.advance()
+        if common.print_to_stdout:
+            print(f'Fast forwarding to frame {self.start_frame}...')
+        for frame in range(len(self.m64[1])):
+            self.set_inputs(self.game, self.m64[1][frame])
+            self.game.advance()
 
-            # print periodically
-            if frame % 50000 == 0:
-                print('Frame %05d stars %02d' % (frame, Bruteforcer.game.read('gMarioState.numStars')))
-            if frame == Bruteforcer.start_frame:
-                print('---bruteforce start---')
-                print(f"{Bruteforcer.game.read('gMarioState.action')}")
-                Bruteforcer.startst = Bruteforcer.game.save_state()
+            if common.print_to_stdout:
+                # print periodically
+                if frame % 50000 == 0:
+                    print('Frame %05d stars %02d' % (frame, self.game.read('gMarioState.numStars')))
+            if frame == self.start_frame:
+                if common.print_to_stdout:
+                    print('---bruteforce start---')
+                    print(f"{self.game.read('gMarioState.action')}")
+                self.startst = self.game.save_state()
                 break
 
     # Helper function to ignore deadzones while
     # incrementing a coordinate
     # to decrement, can say x = -increment_coord(-x)
     # !!!changed for wafel api because its unsigned here!!! seems to be a bit broken
-    def increment_coord(coord):
+    def increment_coord(self, coord: int):
         coord -= 128
         if coord == -8:
             coord = 0
@@ -97,14 +98,14 @@ class Bruteforcer:
 
     # Can include this for regularization if you want. Will penalize difference
     # between joystick numbers on consecutive frames
-    def l1ofdiff(m64):
+    def l1ofdiff(self, m64: wafel.M64Metadata):
         tot = 0
-        for i in range(Bruteforcer.start_frame, Bruteforcer.end_frame + 1):
+        for i in range(self.start_frame, self.end_frame + 1):
             tot += abs(m64[1][i][1] - m64[1][i + 1][1])
             tot += abs(m64[1][i][2] - m64[1][i + 1][2])
         return tot
 
-    def get_fitness(x, y, z, hspd, coins, fyaw, actn):
+    def get_fitness(self, x: float, y: float, z: float, hspd: float, coins: int, fyaw: c_uint16, actn: int):
         fitness_opt_vals = dict(
             des_x = so.get_option_val('des_x'),
             des_y = so.get_option_val('des_y'),
@@ -114,14 +115,16 @@ class Bruteforcer:
             des_fyaw = so.get_option_val('des_fyaw')
         )
         fitness = 0
-        iter = range(6)
+        iter = range(1, 6)
         for option, i in zip(fitness_opt_vals, iter):
             # Skip unused options
             if fitness_opt_vals[option] == None:
                 continue
-
             # Apply weights
-            fitness += so.get_option_weight(option) * abs(fitness_opt_vals[option] - eval(list(locals())[i]))
+            weight = 1
+            if so.get_option_weight(option) != '':
+                weight = so.get_option_weight(option)
+            fitness += weight * abs(fitness_opt_vals[option] - eval(list(locals())[i]))
 
         # If the desired action isn't achieved, no improvement is made to fitness
         des_actn = so.get_option_val('des_actn')
@@ -137,24 +140,19 @@ class Bruteforcer:
             
         return fitness
 
-    # testing fitness function
-    # x = game.read('gMarioState.pos')[0]
-    # y = game.read('gMarioState.pos')[1]
-    # z = game.read('gMarioState.pos')[2]
-    # hspd = game.read('gMarioState.forwardVel')
-    # fyaw = game.read('gMarioState.faceAngle')[1]
-    # actn = game.read('gMarioState.action')
-    # coins = game.read('gMarioState.numCoins')
-    # get_fitness(x, y, z, hspd, coins, fyaw, actn)
-
-    # This cell is definitely the messiest, and where you might want to do something
-    # different. Roughly speaking, it does annealing with random restarts.
-    # keep track of best m64 found and best objective value
-    def bruteforce(queue):
-        Bruteforcer.initialize()
+    # Roughly speaking, it does annealing with random restarts,
+    # keeping track of best m64 found and best objective value
+    def bruteforce(self, queue: Queue):
+        try:
+            self.initialize()
+        except:
+            self.error = sys.exc_info()
+            # Send the exception information to the GUI
+            common.PostEventWrapper(queue.queue[0], common.WafelErrorEvent(exception_type=self.error[0], exception_value=self.error[1], exception_traceback=self.error[2]))
+            return
 
         # Make a backup of the original inputs
-        m64_orig = Bruteforcer.m64
+        m64_orig = self.m64
         best_ever_m64 = m64_orig
         best_ever_val = 999999  # change this to a known best to continue work
 
@@ -175,24 +173,25 @@ class Bruteforcer:
             # Now try random perturbations
             for i in range(500000):
                 if not common.bruteforcing:
-                    print(f'--- Bruteforcing ended --- \nResults: '
-                    f'X: {Bruteforcer.best_x} Y: {Bruteforcer.best_y} Z: {Bruteforcer.best_z} HSpd: {Bruteforcer.best_hspd} '
-                    f'Coins: {Bruteforcer.best_coins} coins FYaw: {Bruteforcer.best_fyaw} '
-                    f'Action: {GetActionName(Bruteforcer.best_actn)}')
+                    if common.print_to_stdout:
+                        print(f'--- Bruteforcing ended --- \nResults: '
+                        f'X: {self.current_values.x} Y: {self.current_values.y} Z: {self.current_values.z} HSpd: {self.current_values.hspd} '
+                        f'Coins: {self.current_values.coins} coins FYaw: {self.current_values.fyaw} '
+                        f'Action: {GetActionName(self.current_values.actn)}')
                     return
                 # Break out early if these settings get stuck
                 if i - last_change > 25000:
-                    print(temp)
-                    print(max_changes)
-                    print(max_size)
+                    if common.print_to_stdout:
+                        print(temp)
+                        print(max_changes)
+                        print(max_size)
                     break
                 # Array to keep track of changes made to the m64.
                 # Make some random changes, check fitness, revert if not good enough.
                 changes = []
                 if i % 500 == 0:
-                    print(f'{i}. {cur_val:.4f}')
-                    # Send data to GUI through event
-                    common.PostEventWrapper(queue.queue[0], common.UpdateOutputEvent(vals=Bruteforcer.current_values))
+                    if common.print_to_stdout:
+                        print(f'{i}. {cur_val:.4f}')
                 # Lower temperature
                 if i % 300 == 0:
                     temp = temp * .995
@@ -205,7 +204,7 @@ class Bruteforcer:
                     for iter1 in range(num_changes):
                         # Randomly select change frame (with replacement in
                         # the event of multiple changes)
-                        change_frame = randint(Bruteforcer.start_frame + 1, Bruteforcer.end_frame)
+                        change_frame = randint(self.start_frame + 1, self.end_frame)
                         change_dir = randint(0, 3)
                         change_size = randint(1, max_size)
                         if random() > big_change_size_prob and i > 3000:
@@ -218,76 +217,77 @@ class Bruteforcer:
                             frame_inp = m64[1][change_frame]
                             # print(frame_inp.stick_y)
                             if change_dir == 0:
-                                frame_inp.stick_x = Bruteforcer.increment_coord(frame_inp.stick_x)
+                                frame_inp.stick_x = self.increment_coord(frame_inp.stick_x)
                             elif change_dir == 1:
-                                frame_inp.stick_y = Bruteforcer.increment_coord(frame_inp.stick_y)
+                                frame_inp.stick_y = self.increment_coord(frame_inp.stick_y)
                             elif change_dir == 2:
-                                frame_inp.stick_x = 255 - Bruteforcer.increment_coord(255 - frame_inp.stick_x)
+                                frame_inp.stick_x = 255 - self.increment_coord(255 - frame_inp.stick_x)
                             else:
-                                frame_inp.stick_y = 255 - Bruteforcer.increment_coord(255 - frame_inp.stick_y)
+                                frame_inp.stick_y = 255 - self.increment_coord(255 - frame_inp.stick_y)
                             m64[1][change_frame] = frame_inp
 
                 # now find its fitness to minimize
                 # this works by loading starting state, running current inputs and measuring what happened
                 fit = 0
-                Bruteforcer.game.load_state(Bruteforcer.startst)
-                for frame in range(Bruteforcer.start_frame, Bruteforcer.end_frame):
-                    Bruteforcer.set_inputs(Bruteforcer.game, (m64[1][frame + 1]))
-                    Bruteforcer.game.advance()
+                self.game.load_state(self.startst)
+                for frame in range(self.start_frame, self.end_frame):
+                    self.set_inputs(self.game, (m64[1][frame + 1]))
+                    self.game.advance()
                     
-                endst = Bruteforcer.game.save_state()
+                endst = self.game.save_state()
                 offset = 0
                 # values that can be used to figure out fitness
-                Bruteforcer.current_values.x = Bruteforcer.game.read('gMarioState.pos')[0]
-                Bruteforcer.current_values.y = Bruteforcer.game.read('gMarioState.pos')[1]
-                Bruteforcer.current_values.z = Bruteforcer.game.read('gMarioState.pos')[2]
-                Bruteforcer.current_values.hspd = Bruteforcer.game.read('gMarioState.forwardVel')
-                Bruteforcer.current_values.fyaw = Bruteforcer.game.read('gMarioState.faceAngle')[1]
-                Bruteforcer.current_values.actn = Bruteforcer.game.read('gMarioState.action')
-                Bruteforcer.current_values.coins = Bruteforcer.game.read('gMarioState.numCoins')
-                if Bruteforcer.current_values.fyaw > 65535:
-                    Bruteforcer.current_values.fyaw -= 65536
-                elif Bruteforcer.current_values.fyaw < 0:
-                    Bruteforcer.current_values.fyaw += 65536
-                Bruteforcer.current_values.fitness = Bruteforcer.get_fitness(Bruteforcer.current_values.x, Bruteforcer.current_values.y, 
-                                                  Bruteforcer.current_values.z, Bruteforcer.current_values.hspd, 
-                                                  Bruteforcer.current_values.coins, Bruteforcer.current_values.fyaw, 
-                                                  Bruteforcer.current_values.actn)
+                x = self.game.read('gMarioState.pos')[0]
+                y = self.game.read('gMarioState.pos')[1]
+                z = self.game.read('gMarioState.pos')[2]
+                hspd = self.game.read('gMarioState.forwardVel')
+                fyaw = self.game.read('gMarioState.faceAngle')[1]
+                actn = self.game.read('gMarioState.action')
+                coins = self.game.read('gMarioState.numCoins')
+                if fyaw > 65535:
+                    fyaw -= 65536
+                elif fyaw < 0:
+                    fyaw += 65536
+                fitness = self.get_fitness(x, y, z, hspd, coins, fyaw, actn)
                 # return
                 if fit == 99999:
-                    Bruteforcer.current_values.fitness = 99990
+                    fitness = 99990
                 if so.get_regularization():
-                    Bruteforcer.current_values.fitness = Bruteforcer.current_values.fitness + Bruteforcer.l1ofdiff(m64)*.03 # ?
-                if Bruteforcer.current_values.fitness < cur_val:
+                    fitness = fitness + self.l1ofdiff(m64)*.03 # ?
+                if fitness < cur_val:
                     last_change = i
-                    cur_val = Bruteforcer.current_values.fitness
-                    if Bruteforcer.current_values.fitness < best_val:
-                        print(f'New best: {Bruteforcer.current_values.fitness:.4f} ({best_val - Bruteforcer.current_values.fitness:.4f})')
-                        print(f'X: {Bruteforcer.current_values.x} Y: {Bruteforcer.current_values.y} ' 
-                              f'Z: {Bruteforcer.current_values.z} HSpd: {Bruteforcer.current_values.hspd} '
-                              f'FYaw: {Bruteforcer.current_values.fyaw} Coins: {Bruteforcer.current_values.coins}')
-                        Bruteforcer.best_x = Bruteforcer.game.read('gMarioState.pos')[0]
-                        Bruteforcer.best_y = Bruteforcer.game.read('gMarioState.pos')[1]
-                        Bruteforcer.best_z = Bruteforcer.game.read('gMarioState.pos')[2]
-                        Bruteforcer.best_hspd = Bruteforcer.game.read('gMarioState.forwardVel')
-                        Bruteforcer.best_fyaw = Bruteforcer.game.read('gMarioState.faceAngle')[1]
-                        Bruteforcer.best_actn = Bruteforcer.game.read('gMarioState.action')
-                        Bruteforcer.best_coins = Bruteforcer.game.read('gMarioState.numCoins')
-                        if Bruteforcer.best_fyaw > 65535:
-                            Bruteforcer.best_fyaw -= 65536
-                        elif Bruteforcer.best_fyaw < 0:
-                            Bruteforcer.best_fyaw += 65536
-                        best_val = Bruteforcer.current_values.fitness
-                    if Bruteforcer.current_values.fitness < best_ever_val:
-                        print(f'New best ever: {Bruteforcer.current_values.fitness:.4f} ({best_ever_val - Bruteforcer.current_values.fitness:.4f})')
-                        wafel.save_m64(Bruteforcer.filename_new, m64[0], m64[1])
-                        best_ever_val = Bruteforcer.current_values.fitness
+                    cur_val = fitness
+                    if fitness < best_val:
+                        if common.print_to_stdout:
+                            print(f'New best: {fitness:.4f} ({best_val - fitness:.4f})')
+                            print(f'X: {x} Y: {y} ' 
+                                  f'Z: {z} HSpd: {hspd} '
+                                  f'FYaw: {fyaw} Coins: {coins}')
+                        self.current_values.x = self.game.read('gMarioState.pos')[0]
+                        self.current_values.y = self.game.read('gMarioState.pos')[1]
+                        self.current_values.z = self.game.read('gMarioState.pos')[2]
+                        self.current_values.hspd = self.game.read('gMarioState.forwardVel')
+                        self.current_values.fyaw = self.game.read('gMarioState.faceAngle')[1]
+                        self.current_values.actn = self.game.read('gMarioState.action')
+                        self.current_values.coins = self.game.read('gMarioState.numCoins')
+                        if self.current_values.fyaw > 65535:
+                            self.current_values.fyaw -= 65536
+                        elif self.current_values.fyaw < 0:
+                            self.current_values.fyaw += 65536
+                        self.current_values.fitness = best_val = fitness
+                    if fitness < best_ever_val:
+                        if common.print_to_stdout:
+                            print(f'New best ever: {self.current_values.fitness:.4f} ({best_ever_val - self.current_values.fitness:.4f})')
+                        wafel.save_m64(self.filename_new, m64[0], m64[1])
+                        best_ever_val = best_val
                         best_ever_m64 = m64
+                        # Send data to GUI through event
+                        common.PostEventWrapper(queue.queue[0], common.UpdateOutputEvent(vals=self.current_values))
                 # Chose the most basic function for annealing
-                elif random() < np.exp(-(Bruteforcer.current_values.fitness - cur_val) / temp):
-                    if Bruteforcer.current_values.fitness != cur_val:
+                elif random() < np.exp(-(self.current_values.fitness - cur_val) / temp):
+                    if self.current_values.fitness != cur_val:
                         last_change = i
-                    cur_val = Bruteforcer.current_values.fitness
+                    cur_val = self.current_values.fitness
                 else:
                     # if we failed, revert m64
                     # revert changes in reverse order of how they were made

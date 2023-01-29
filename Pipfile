@@ -1,0 +1,19 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+wxPython="*"
+numpy="*"
+
+[dev-packages]
+py2exe="*"
+
+[requires]
+python_version = "3.9"
+
+[scripts]
+# You will need to download Wafel and unlock the libsm64 .dll files you plan to use
+# before running this command (https://github.com/branpk/wafel/releases)
+get_wafel_bindings = 'pip install --find-links=bindings/python wafel --upgrade'

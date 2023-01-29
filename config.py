@@ -2,9 +2,11 @@
 Handles config saving and loading
 """
 
-from script_options import ScriptOptions as so
+# from script_options import ScriptOptions as so
+import common
+import wx
 
-def LoadConfig(frame):
+def LoadConfig(frame: wx.Frame):
     try:
         with open('config.cfg', 'r') as file:
             for line in file:
@@ -40,7 +42,8 @@ def LoadConfig(frame):
                 elif split_list[0] == 'des_actn':
                     frame.actn_dropdown.SetValue(split_list[1].replace('\n', ''))
                 elif split_list[0] == 'cond_opts':
-                    frame.cond_opt_txtbox.SetValue(split_list[1].replace('\n', ''))
+                    # Special handling because splitting by '=' breaks this otherwise
+                    frame.cond_opt_txtbox.SetValue(line[10:].replace('\n', ''))
                 elif split_list[0] == 'des_x_weight':
                     frame.x_weight_txtbox.SetValue(split_list[1].replace('\n', ''))
                 elif split_list[0] == 'des_y_weight':
@@ -53,13 +56,14 @@ def LoadConfig(frame):
                     frame.coins_weight_txtbox.SetValue(split_list[1].replace('\n', ''))
                 elif split_list[0] == 'des_fyaw_weight':
                     frame.fyaw_weight_txtbox.SetValue(split_list[1].replace('\n', ''))
-        print('Config Loaded')
+        if common.print_to_stdout:
+            print('Config Loaded')
     # just create file if it doesn't exist
     except FileNotFoundError:
         with open('config.cfg', 'w') as file:
             file.close()
 
-def SaveConfig(frame):
+def SaveConfig(frame: wx.Frame):
     with open('config.cfg', 'w+') as file:
         file.write(f'game={frame.libsm64_browse.GetValue()}\n')
         file.write(f'start_frame={frame.start_frame_txtbox.GetValue()}\n')
@@ -95,4 +99,5 @@ def SaveConfig(frame):
         # file.write(f'des_fyaw={str(so.get_option_val('des_fyaw')) if so.get_option_val('des_fyaw') != None else ''}\n')
         # file.write(f'DesActn={so.get_option_val('des_actn')}\n')
         # file.write(f'UncondOpt={so.get_option_val('uncond_opt')}')
-    print('Config Saved')
+    if common.print_to_stdout:
+        print('Config Saved')

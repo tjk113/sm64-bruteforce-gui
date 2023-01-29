@@ -1,18 +1,23 @@
 """
 Handles GUI and distributes tasks to other files (houses main app thread)
 """
-
-from sys import argv
-from os import path
+from types import TracebackType
 import threading
+import traceback
 import time
-import wx
-import wx.lib.filebrowsebutton as filebrowse
+import sys
 
+import wx.lib.filebrowsebutton as filebrowse
+import wx
+
+from script_options import ConditionalOptionError
+from script_options import ScriptOptions as so
 from actions import *
 import config
 import common
-from script_options import ScriptOptions as so
+
+version = 'v1.0'
+window_title = f'SM64 Bruteforce GUI {version}'
 
 # Main Window
 class MainFrame(wx.Frame):
@@ -26,13 +31,9 @@ class MainFrame(wx.Frame):
         # Config box
         wx.StaticBox(self.panel, label='Config', size=(725, 77), pos=(5, 2))
 
-        self.libsm64_browse = filebrowse.FileBrowseButton(
-            self.panel, labelText='libsm64 .dll:    ', pos=(10, 18)
-        )
-
-        self.m64_browse = filebrowse.FileBrowseButton(
-            self.panel, labelText='Base .m64 file:', pos=(10, 45)
-        )
+        self.libsm64_browse = filebrowse.FileBrowseButton(self.panel, labelText='libsm64 .dll:    ', pos=(10, 18))
+        
+        self.m64_browse = filebrowse.FileBrowseButton(self.panel, labelText='Base .m64 file:', pos=(10, 45))
 
         wx.StaticText(self.panel, label='Start Frame:', pos=(295, 25))
         self.start_frame_txtbox = wx.TextCtrl(self.panel, size=(44, -1), pos=(365, 22), style=wx.TE_CENTRE)
@@ -43,8 +44,7 @@ class MainFrame(wx.Frame):
         wx.StaticText(self.panel, label='Starting Temperature:', pos=(420, 38))
         self.temp_txtbox = wx.TextCtrl(self.panel, size=(40, -1), pos=(540, 35), style=wx.TE_CENTRE)
 
-        self.regularization_checkbox = wx.CheckBox(self.panel, label='Regularize Inputs ', pos=(590, 38), 
-                                                   style=wx.ALIGN_RIGHT)
+        self.regularization_checkbox = wx.CheckBox(self.panel, label='Regularize Inputs ', pos=(590, 38), style=wx.ALIGN_RIGHT)
         # End Config Box
 
         # Fitness Options Box
@@ -87,7 +87,6 @@ class MainFrame(wx.Frame):
 
         # Output Box
         wx.StaticBox(self.panel, label='Output', size=(725, 105), pos=(5, 185))
-        self.Bind(common.EVT_UPDATE_OUTPUT, self.UpdateOutput)
 
         self.best_x_text = wx.StaticText(self.panel, label='Best X:', pos=(14, 210))
         self.best_x_val = wx.TextCtrl(self.panel, size=(72, 20), pos=(55, 208), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
@@ -123,7 +122,7 @@ class MainFrame(wx.Frame):
         ID_BRUTEFORCE_HOTKEY = wx.NewIdRef()
         ID_UNFOCUS_HOTKEY = wx.NewIdRef()
 
-        accelerators = [wx.AcceleratorEntry() for x in range(2)] # set range to number of hotkeys
+        accelerators = [wx.AcceleratorEntry() for i in range(2)] # set range to number of hotkeys
         accelerators[0].Set(wx.ACCEL_CTRL, ord('B'), ID_BRUTEFORCE_HOTKEY)
         accelerators[1].Set(wx.ACCEL_NORMAL, wx.WXK_ESCAPE, ID_UNFOCUS_HOTKEY)
         accel=wx.AcceleratorTable(accelerators)
@@ -132,106 +131,164 @@ class MainFrame(wx.Frame):
 
         # Bindings
         self.brute_button = wx.Button(self.panel, label='Bruteforce!', pos=(275, 300), size=(165, 50))
-        self.Bind(wx.EVT_BUTTON, self.StartBruteforce, self.brute_button)
+        self.Bind(wx.EVT_BUTTON, self.StartStopBruteforce, self.brute_button)
 
-        self.Bind(wx.EVT_MENU, self.StartBruteforce, id=ID_BRUTEFORCE_HOTKEY)
+        self.Bind(wx.EVT_MENU, self.StartStopBruteforce, id=ID_BRUTEFORCE_HOTKEY)
         self.Bind(wx.EVT_MENU, self.Unfocus, id=ID_UNFOCUS_HOTKEY)
 
+
+        self.Bind(common.EVT_UPDATE_OUTPUT, self.UpdateOutput)
         self.Bind(wx.EVT_TIMER, self.UpdateTimer)
 
+        # We use a lambda here so that the event's parameters are in scope for the DisplayErrorWindow callback
+        self.Bind(common.EVT_WAFEL_ERROR, lambda evt: self.DisplayErrorWindow(evt.exception_type, evt.exception_value, evt.exception_traceback))
+        sys.excepthook = self.DisplayErrorWindow
+        # sys.tracebacklimit = 0 # prevents printing the whole traceback in the error message window
+
         self.Bind(wx.EVT_CLOSE, self.OnWindowClose)
+
         # End Bindings
 
         self.SetFocus()
 
     # Setter Functions
-    def SetGame(self, event):
-        if self.libsm64_browse.GetValue() != '':
-            so.set_game(self.libsm64_browse.GetValue())
-        print('Game:', so.get_option_val('game'))
+    def SetGame(self):
+        """Set Game path from GUI"""
+        libsm64 = self.libsm64_browse.GetValue()
+        if libsm64 != '':
+            so.set_game(libsm64)
+        if common.print_to_stdout:
+            print('Game:', so.get_option_val('game'))
 
-    def SetRange(self, event):
-        if self.start_frame_txtbox.GetValue() != '' and self.end_frame_txtbox.GetValue() != '':
-            so.set_range(int(self.start_frame_txtbox.GetValue()), int(self.end_frame_txtbox.GetValue()))
-        print('Start Frame:', so.get_option_val('start_frame'), 'End Frame:', 
-              so.get_option_val('end_frame'))
+    def SetRange(self):
+        """Set frame range from GUI"""
+        start_frame = self.start_frame_txtbox.GetValue()
+        end_frame = self.end_frame_txtbox.GetValue()
+        if start_frame != '' and end_frame != '':
+            so.set_range(int(start_frame), int(end_frame))
+        if common.print_to_stdout:
+            print('Start Frame:', so.get_option_val('start_frame'), 'End Frame:', 
+                so.get_option_val('end_frame'))
 
-    def SetM64(self, event):
-        if self.m64_browse.GetValue() != '':
-            so.set_input_m64(self.m64_browse.GetValue())
-            so.set_output_m64(self.m64_browse.GetValue()[:-4] + '.bruteforced.m64')
-        print('Input .m64:', so.get_option_val('input_m64'))
+    def SetM64(self):
+        """Set M64 path from GUI"""
+        m64 = self.m64_browse.GetValue()
+        if m64 != '':
+            so.set_input_m64(m64)
+            so.set_output_m64(m64[:-4] + '.bruteforced.m64')
+        if common.print_to_stdout:
+            print('Input .m64:', so.get_option_val('input_m64'))
 
-    def SetTemp(self, event):
-        if self.temp_txtbox.GetValue() != '':
-            so.set_temp(float(self.temp_txtbox.GetValue()))
-        print('Starting Temperature:', so.get_option_val('temp'))
+    def SetTemp(self):
+        """Set starting bruteforce temperature from GUI"""
+        temp = self.temp_txtbox.GetValue()
+        if temp != '':
+            so.set_temp(float(temp))
+        if common.print_to_stdout:
+            print('Starting Temperature:', so.get_option_val('temp'))
 
-    def SetRegularization(self, event):
+    def SetRegularization(self):
+        """Set bruteforce regularization option from GUI"""
         so.set_regularization(self.regularization_checkbox.GetValue())
-        print('Regularize Inputs:', self.regularization_checkbox.GetValue())
+        if common.print_to_stdout:
+            print('Regularize Inputs:', self.regularization_checkbox.GetValue())
 
-    def SetDesCoords(self, event):
+    def SetDesCoords(self):
+        """Set coordinate fitness options from GUI""" 
         if self.x_txtbox.GetValue() != '':
             so.set_des_coords(des_x=float(self.x_txtbox.GetValue()))
+            if self.x_weight_txtbox.GetValue() != '':
+                so.set_option_weight('des_x', float(self.x_weight_txtbox.GetValue()))
+            else:
+                so.set_option_weight('des_x', 1.0)
+                self.x_weight_txtbox.SetValue('1')
         if self.y_txtbox.GetValue() != '':
             so.set_des_coords(des_y=float(self.y_txtbox.GetValue()))
+            if self.y_weight_txtbox.GetValue() != '':
+                so.set_option_weight('des_y', float(self.y_weight_txtbox.GetValue()))
+            else:
+                so.set_option_weight('des_y', 1.0)
+                self.y_weight_txtbox.SetValue('1')
         if self.z_txtbox.GetValue() != '':
             so.set_des_coords(des_z=float(self.z_txtbox.GetValue()))
-        
-        if self.x_weight_txtbox.GetValue() != '':
-            so.set_option_weight('des_x', float(self.x_weight_txtbox.GetValue()))
-        if self.y_weight_txtbox.GetValue() != '':
-            so.set_option_weight('des_y', float(self.y_weight_txtbox.GetValue()))
-        if self.z_weight_txtbox.GetValue() != '':
-            so.set_option_weight('des_z', float(self.z_weight_txtbox.GetValue()))
-        print('Des X:', str(so.get_option_val('des_x')), '(' + ('N/A', str(so.get_option_weight('des_x')))[so.get_option_weight('des_x') != ''] + ')', 
-              'Des Y:', str(so.get_option_val('des_y')), '(' + ('N/A', str(so.get_option_weight('des_y')))[so.get_option_weight('des_y') != ''] + ')',
-              'Des Z:', str(so.get_option_val('des_z')), '(' + ('N/A', str(so.get_option_weight('des_z')))[so.get_option_weight('des_z') != ''] + ')')
+            if self.z_weight_txtbox.GetValue() != '':
+                so.set_option_weight('des_z', float(self.z_weight_txtbox.GetValue()))
+            else:
+                so.set_option_weight('des_z', 1.0)
+                self.z_weight_txtbox.SetValue('1')
+        if common.print_to_stdout:
+            print('Des X:', str(so.get_option_val('des_x')), '(' + ('N/A', str(so.get_option_weight('des_x')))[so.get_option_weight('des_x') != ''] + ')', 
+                  'Des Y:', str(so.get_option_val('des_y')), '(' + ('N/A', str(so.get_option_weight('des_y')))[so.get_option_weight('des_y') != ''] + ')',
+                  'Des Z:', str(so.get_option_val('des_z')), '(' + ('N/A', str(so.get_option_weight('des_z')))[so.get_option_weight('des_z') != ''] + ')')
 
-    def SetDesHSpd(self, event):
-        if self.hspd_txtbox.GetValue() != '':
-            so.set_des_hspd(float(self.hspd_txtbox.GetValue()))
-            so.set_option_weight('des_hspd', float(self.hspd_weight_txtbox.GetValue()))
-        print('Des HSpd:', str(so.get_option_val('des_hspd')), '(' + ('N/A', str(so.get_option_weight('des_hspd')))[so.get_option_weight('des_hspd') != ''] + ')')
+    def SetDesHSpd(self):
+        """Set goal horizontal speed from GUI"""
+        hspd = self.hspd_txtbox.GetValue()
+        if hspd != '':
+            so.set_des_hspd(float(hspd))
+            hspd_weight = self.hspd_weight_txtbox.GetValue()
+            if hspd_weight != '':
+                so.set_option_weight('des_hspd', float(hspd_weight))
+            else:
+                so.set_option_weight('des_hspd', 1.0)
+                self.hspd_weight_txtbox.SetValue('1')
+        if common.print_to_stdout:
+            print('Des HSpd:', str(so.get_option_val('des_hspd')), '(' + ('N/A', str(so.get_option_weight('des_hspd')))[so.get_option_weight('des_hspd') != ''] + ')')
 
-    def SetDesCoins(self, event):
-        if self.coins_txtbox.GetValue() != '':
-            so.set_des_coins(int(self.coins_txtbox.GetValue()))
-            so.set_option_weight('des_coins', float(self.coins_weight_txtbox.GetValue()))
-        print('Des Coins:', str(so.get_option_val('des_coins')), '(' + ('N/A', str(so.get_option_weight('des_coins')))[so.get_option_weight('des_coins') != ''] + ')')
+    def SetDesCoins(self):
+        """Set goal coin count from GUI"""
+        coins = self.coins_txtbox.GetValue()
+        if coins != '':
+            so.set_des_coins(int(coins))
+            coins_weight = self.coins_weight_txtbox.GetValue()
+            if coins_weight != '':
+                so.set_option_weight('des_coins', 1.0)
+                self.coins_weight_txtbox.SetValue('1')
+        if common.print_to_stdout:
+            print('Des Coins:', str(so.get_option_val('des_coins')), '(' + ('N/A', str(so.get_option_weight('des_coins')))[so.get_option_weight('des_coins') != ''] + ')')
 
-    def SetDesFYaw(self, event):
-        if self.fyaw_txtbox.GetValue() != '':
-            so.set_des_fyaw(int(self.fyaw_txtbox.GetValue()))
-            so.set_option_weight('des_fyaw', float(self.fyaw_weight_txtbox.GetValue()))
-        print('Des FYaw:', str(so.get_option_val('des_fyaw')), '(' + ('N/A', str(so.get_option_weight('des_fyaw')))[so.get_option_weight('des_fyaw') != ''] + ')')
+    def SetDesFYaw(self):
+        """Set goal facing yaw from GUI"""
+        fyaw = self.fyaw_txtbox.GetValue()
+        if fyaw != '':
+            so.set_des_fyaw(int(fyaw))
+            fyaw_weight = self.fyaw_weight_txtbox.GetValue()
+            if fyaw_weight != '':
+                so.set_option_weight('des_fyaw', float(fyaw_weight))
+            else:
+                so.set_option_weight('des_fyaw', 1.0)
+                self.fyaw_weight_txtbox.SetValue('1')
+        if common.print_to_stdout:
+            print('Des FYaw:', str(so.get_option_val('des_fyaw')), '(' + ('N/A', str(so.get_option_weight('des_fyaw')))[so.get_option_weight('des_fyaw') != ''] + ')')
 
-    def SetDesActn(self, event):
+    def SetDesActn(self):
+        """Set goal action from GUI"""
         actn = self.actn_dropdown.GetValue()
         if actn != '':
             so.set_des_actn(actions[actn])
-        print('Des Action:', ('None', actn)[actn != ''])
+        if common.print_to_stdout:
+            print('Des Action:', ('None', actn)[actn != ''])
 
-    def SetConditionalOption(self, event):
+    def SetConditionalOptions(self):
+        """Set conditional options from GUI"""
         opts = so.set_conditional_options(self.cond_opt_txtbox.GetValue())
         # Ensure that we're not treating ints as bools or vice versa
         if not (isinstance(opts, bool) and opts):
             if isinstance(opts, bool) and opts == False:
-                print('Too many conditional options. Maximum allowed is 10.')
+                raise ConditionalOptionError('Too many conditional options. Maximum allowed is 10.')
             elif isinstance(opts, list) and opts[0] <= 10:
                 opts[1] = opts[1][0].strip("[]'") # can't put this inside the f-string :/
-                print(f"Banned keyword '{opts[1]}' found in statement #{opts[0]}.")  
+                raise ConditionalOptionError(f"Banned keyword '{opts[1]}' found in statement {opts[0]+1}.")  
             else:
-                print('Invalid Input.')
-            return False
-        print('Conditional Option(s):', so.get_option_val('cond_opts'))
+                raise ConditionalOptionError('Invalid Input.')
+        if common.print_to_stdout:
+            print('Conditional Option(s):', so.get_option_val('cond_opts'))
         return True
     # End Setter Functions
 
-    def StartBruteforce(self, event):
-        """Run setter functions and start bruteforcing with specified (or default, if not specified) options"""
-        self.Unfocus(event)
+    def StartStopBruteforce(self, event=None):
+        """Run setter functions and start bruteforcing with specified (or default, if not specified) options, or stop if already running"""
+        self.Unfocus()
 
         if common.bruteforcing:
             self.timer.Stop()
@@ -244,25 +301,28 @@ class MainFrame(wx.Frame):
             self.brute_button.SetLabel('Stop Bruteforcing')
             common.bruteforcing = True
 
-            print('--- Configuration ---')
-            self.SetGame(event)
-            self.SetRange(event)
-            self.SetM64(event)
-            self.SetTemp(event)
-            self.SetRegularization(event)
-            self.SetDesCoords(event)
-            self.SetDesHSpd(event)
-            self.SetDesCoins(event)
-            self.SetDesFYaw(event)
-            self.SetDesActn(event)
-            cond_opt_res = self.SetConditionalOption(event)
+            if common.print_to_stdout:
+                print('--- Configuration ---')
+            self.SetGame()
+            self.SetRange()
+            self.SetM64()
+            self.SetTemp()
+            self.SetRegularization()
+            self.SetDesCoords()
+            self.SetDesHSpd()
+            self.SetDesCoins()
+            self.SetDesFYaw()
+            self.SetDesActn()
+            cond_opt_res = self.SetConditionalOptions()
             if not cond_opt_res:
                 return
-            print('---------------------')
+            if common.print_to_stdout:
+                print('---------------------')
 
             # Start bruteforcing
             from user_defined_script import Bruteforcer
-            self.brute_thread = threading.Thread(target=Bruteforcer.bruteforce, args=(common.frame_queue,), daemon=True)
+            self.bruteforcer = Bruteforcer()
+            self.brute_thread = threading.Thread(target=Bruteforcer.bruteforce, args=(self.bruteforcer, common.frame_queue,), daemon=True)
             self.brute_thread.start()
 
             self.UpdateOutput()
@@ -308,8 +368,40 @@ class MainFrame(wx.Frame):
         cur_time = time.strptime(str(int(time.time() - self.start_time)), '%S') # Only take the tens place (seconds)
         cur_time = time.strftime('%H:%M:%S', cur_time)
         self.timer_text.SetLabel(f'Time elapsed: {cur_time}')
+    
+    # https://stackoverflow.com/a/59687640
+    def DisplayErrorWindow(self, exception_type: type[BaseException], exception_value: BaseException, exception_traceback: TracebackType):
+        """Displays Python, Wafel, and Conditional Option error messages in a popup window"""
+        self.StartStopBruteforce()
 
-    def Unfocus(self, event):
+        trace = traceback.format_exception(exception_type, exception_value, exception_traceback)
+        error_type = str(exception_type)
+
+        # Wafel Error
+        if error_type == "<class 'wafel.WafelError'>":
+            error_message = 'Wafel Error:\n\n'
+            if 'file error' in str(exception_value):
+                error_message = 'Cannot find specified libsm64 file.'
+            else:
+                error_message = 'Cannot find specified m64 file.'
+        # Conditional Option Error and Python Error
+        else:
+            if error_type == "<class 'script_options.ConditionalOptionError'>":
+                error_message = 'Conditional Option Error:\n\n'
+            else:
+                error_message = 'Python Error:\n\n'
+            for i in trace:
+                error_message += i
+        # Remove the error type from the error message to make
+        # it as simple to understand as possible for users
+        error_message = error_message.replace('script_options.ConditionalOptionError:', '')
+        error_message = error_message.replace('wafel.wafelError:', '')
+
+        dialog_box = wx.MessageDialog(self, error_message, window_title, wx.OK|wx.ICON_EXCLAMATION)
+        dialog_box.ShowModal()
+        dialog_box.Destroy()
+
+    def Unfocus(self):
         """Unfocuses current menu item"""
         self.SetFocus()
 
@@ -320,10 +412,8 @@ class MainFrame(wx.Frame):
 # End Main Window
 
 if __name__ == '__main__':
-    version = 'v1.0'
     app = wx.App()
-    win = MainFrame(None, -1, f'SM64 Bruteforce GUI {version}', size=(750,400))
-    # win.SetIcon(wx.Icon(path.abspath('SM64BruteforceGUI.exe')+';0', wx.BITMAP_TYPE_ICO)) # trying to make exe icons stuff work
+    win = MainFrame(None, -1, window_title, size=(750,400))
     win.SetIcon(wx.Icon('img\\DorrieChamp.ico'))
     win.Show(True)
     config.LoadConfig(win)

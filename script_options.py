@@ -3,15 +3,12 @@ Handles the internal setting and getting of user-defined script options
 """
 
 import keyword
-import wafel
+
+import common
 
 class ScriptOptions:
+    """Dictionaries and methods for storing, setting, and getting script options"""
 
-    """
-    Dictionaries and methods for storing, setting, and getting script options
-    """
-
-    # Config options dictionary
     config_options = {
         'game': None,
         'start_frame': None,
@@ -21,8 +18,8 @@ class ScriptOptions:
         'temp': None,
         'regularization': None
     }
+    """Configuration options dictionary"""
 
-    # Bruteforcing options dictionary
     fitness_options = {
         'des_x': None,
         'des_y': None,
@@ -33,10 +30,11 @@ class ScriptOptions:
         'des_actn': None,
         'cond_opts': None
     }
+    """Bruteforce fitness options dictionary"""
 
     def set_game(path: str):
         """Set unlocked libsm64 dll path"""
-        ScriptOptions.config_options['game'] = wafel.Game(path)
+        ScriptOptions.config_options['game'] = path
 
     def set_range(start: int, end: int):
         """Set frame range for bruteforcing (0-indexed)"""
@@ -73,12 +71,14 @@ class ScriptOptions:
         ScriptOptions.fitness_options[option + '_weight'] = weight
 
     def set_conditional_options(options: str):
-        """Set conditional option(s) (takes semicolon-separated 'if a: add b' statements as a string)"""
+        """Set conditional options (takes semicolon-separated 'if a: add b' statements as a string)"""
         # Remove newlines and separate individual statements
         options = options.replace('\n', '')
         opts_list = options.split(';')
+        # Remove blank statements
+        opts_list = [i for i in opts_list if i != '']
         # Max amount of 10 statements
-        if len(opts_list) > 10:
+        if options.count(';') > 10:
             return False
 
         # Handling user input dear god help me
@@ -104,7 +104,8 @@ class ScriptOptions:
                 # If any banned keywords are found, return the index of the current option and the banned word(s)
                 found_banned_keywords = [i for i in opt_list_separated if i in banned_keywords]
                 if len(found_banned_keywords) != 0:
-                    print('Banned words found:', found_banned_keywords)
+                    if common.print_to_stdout:
+                        print('Banned words found:', found_banned_keywords)
                     return [opts_list.index(opt), found_banned_keywords]
 
                 # Convert regular 'if' statement into one-line ternary 'if-else' statement
@@ -153,3 +154,6 @@ class ScriptOptions:
     def get_regularization():
         """Get whether joystick regularization is enabled"""
         return ScriptOptions.config_options['regularization']
+
+class ConditionalOptionError(Exception):
+    """Exception raised as a result of an incorrect Conditional Option definition"""
