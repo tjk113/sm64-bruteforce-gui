@@ -53,7 +53,7 @@ Once a compatible version of Python is installed, run the following commands:<br
 Download Wafel and unlock the libsm64 .dll files you plan to use using the Wafel GUI program. You will have to provide their respective unmodified SM64 ROMs in order to unlock them.<br>
 Once Wafel is installed and the desired .dll's are unlocked, run the following command:<br>
     ```cmd
-    your\path\here\SM64BruteforceGUIv1.0> pipenv run get_wafel_bindings
+    your\path\here\SM64BruteforceGUIv1.0.2> pipenv run get_wafel_bindings
     ```
 
     This will install the Python bindings for the Wafel library, and then you'll be ready to run `gui.py` from within the virtual environment!<br>
