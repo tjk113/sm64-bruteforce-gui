@@ -42,7 +42,7 @@ def LoadConfig(frame: wx.Frame):
                 elif split_list[0] == 'des_actn':
                     frame.actn_dropdown.SetValue(split_list[1].replace('\n', ''))
                 elif split_list[0] == 'cond_opts':
-                    # Special handling because splitting by '=' breaks this otherwise
+                    # Special handling because splitting by '=' can break this otherwise
                     frame.cond_opt_txtbox.SetValue(line[10:].replace('\n', ''))
                 elif split_list[0] == 'des_x_weight':
                     frame.x_weight_txtbox.SetValue(split_list[1].replace('\n', ''))

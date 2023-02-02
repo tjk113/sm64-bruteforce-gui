@@ -43,9 +43,9 @@ Adds `50` to the fitness function's return value if **Coins** is not equal to `9
 Be sure to add this Python version to your PATH, so pipenv can find it when setting up the virtual environment (if you already have a separate non-compatible Python installation, you'll have to specify that version in the following pip and pipenv commands. You can do so by using its full path followed by `-m` and then followed by the command, or you can rename the `python.exe` executable in the `Python39` folder and call it using that name).<br>
 Once a compatible version of Python is installed, run the following commands:<br>
     ```cmd
-    your\path\here> cd SM64BruteforceGUIv1.0.1
-    your\path\here\SM64BruteforceGUIv1.0.1> pip install pipenv
-    your\path\here\SM64BruteforceGUIv1.0.1> pipenv install
+    your\path\here> cd SM64BruteforceGUIv1.0.2
+    your\path\here\SM64BruteforceGUIv1.0.2> pip install pipenv
+    your\path\here\SM64BruteforceGUIv1.0.2> pipenv install
     ```
 
     This will install [pipenv](https://github.com/pypa/pipenv), the virtual environment tool used by this project, and then use it to create the virtual environment with most of the Python dependencies necessary to run the project.
@@ -59,9 +59,9 @@ Once Wafel is installed and the desired .dll's are unlocked, run the following c
     This will install the Python bindings for the Wafel library, and then you'll be ready to run `gui.py` from within the virtual environment!<br>
     If you want to build the executable yourself (using [py2exe](https://github.com/py2exe/py2exe)), then run the following commands:<br>
     ```cmd
-    your\path\here\SM64BruteforceGUIv1.0.1> pipenv shell
-    (SM64_Bruteforce_GUI-NMlxvqYL) your\path\here\SM64BruteforceGUIv1.0.1> pipenv install py2exe
-    (SM64_Bruteforce_GUI-NMlxvqYL) your\path\here\SM64BruteforceGUIv1.0.1> freeze.py
+    your\path\here\SM64BruteforceGUIv1.0.2> pipenv shell
+    (SM64_Bruteforce_GUI-NMlxvqYL) your\path\here\SM64BruteforceGUIv1.0.2> pipenv install py2exe
+    (SM64_Bruteforce_GUI-NMlxvqYL) your\path\here\SM64BruteforceGUIv1.0.2> freeze.py
     ```
 
 # Ideas

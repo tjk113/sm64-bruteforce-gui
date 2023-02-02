@@ -16,7 +16,7 @@ from actions import *
 import config
 import common
 
-version = 'v1.0.1'
+version = 'v1.0.2'
 window_title = f'SM64 Bruteforce GUI {version}'
 
 # Main Window
@@ -31,9 +31,9 @@ class MainFrame(wx.Frame):
         # Config box
         wx.StaticBox(self.panel, label='Config', size=(725, 77), pos=(5, 2))
 
-        self.libsm64_browse = filebrowse.FileBrowseButton(self.panel, labelText='libsm64 .dll:    ', pos=(10, 18))
+        self.libsm64_browse = filebrowse.FileBrowseButton(self.panel, labelText='libsm64 .dll:    ', pos=(10, 18), fileMask='*.dll')
         
-        self.m64_browse = filebrowse.FileBrowseButton(self.panel, labelText='Base .m64 file:', pos=(10, 45))
+        self.m64_browse = filebrowse.FileBrowseButton(self.panel, labelText='Base .m64 file:', pos=(10, 45), fileMask='*.m64')
 
         wx.StaticText(self.panel, label='Start Frame:', pos=(295, 25))
         self.start_frame_txtbox = wx.TextCtrl(self.panel, size=(44, -1), pos=(365, 22), style=wx.TE_CENTRE)
@@ -89,28 +89,28 @@ class MainFrame(wx.Frame):
         wx.StaticBox(self.panel, label='Output', size=(725, 105), pos=(5, 185))
 
         self.best_x_text = wx.StaticText(self.panel, label='Best X:', pos=(14, 210))
-        self.best_x_val = wx.TextCtrl(self.panel, size=(72, 20), pos=(55, 208), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
+        self.best_x_val = wx.TextCtrl(self.panel, size=(78, 20), pos=(55, 208), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
 
         self.best_y_text = wx.StaticText(self.panel, label='Best Y:', pos=(14, 236))
-        self.best_y_val = wx.TextCtrl(self.panel, size=(72, 20), pos=(55, 234), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
+        self.best_y_val = wx.TextCtrl(self.panel, size=(78, 20), pos=(55, 234), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
 
         self.best_z_text = wx.StaticText(self.panel, label='Best Z:', pos=(14, 263))
-        self.best_z_val = wx.TextCtrl(self.panel, size=(72, 20), pos=(55, 261), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
+        self.best_z_val = wx.TextCtrl(self.panel, size=(78, 20), pos=(55, 261), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
 
         self.best_hspd_text = wx.StaticText(self.panel, label='Best HSpd:', pos=(150, 210))
-        self.best_hspd_val = wx.TextCtrl(self.panel, size=(72, 20), pos=(215, 208), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
+        self.best_hspd_val = wx.TextCtrl(self.panel, size=(78, 20), pos=(215, 208), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
 
         self.best_coins_text = wx.StaticText(self.panel, label='Best Coins:', pos=(150, 236))
-        self.best_coins_val = wx.TextCtrl(self.panel, size=(72, 20), pos=(215, 234), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
+        self.best_coins_val = wx.TextCtrl(self.panel, size=(78, 20), pos=(215, 234), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
 
         self.best_fyaw_text = wx.StaticText(self.panel, label='Best FYaw:', pos=(150, 263))
-        self.best_fyaw_val = wx.TextCtrl(self.panel, size=(72, 20), pos=(215, 261), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
+        self.best_fyaw_val = wx.TextCtrl(self.panel, size=(78, 20), pos=(215, 261), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
 
         self.best_actn_text = wx.StaticText(self.panel, label='Best Action:', pos=(307, 221))
         self.best_actn_val = wx.TextCtrl(self.panel, size=(167, 20), pos=(375, 219), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
 
         self.best_fitn_text = wx.StaticText(self.panel, label='Best Fitness:', pos=(307, 248))
-        self.best_fitn_val = wx.TextCtrl(self.panel, size=(72, 20), pos=(375, 246), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
+        self.best_fitn_val = wx.TextCtrl(self.panel, size=(78, 20), pos=(375, 246), style=(wx.TE_RICH | wx.TE_READONLY | wx.TE_CENTRE))
         # End Output Box
 
         # Timer
@@ -144,6 +144,7 @@ class MainFrame(wx.Frame):
         self.Bind(common.EVT_WAFEL_ERROR, lambda evt: self.DisplayErrorWindow(evt.exception_type, evt.exception_value, evt.exception_traceback))
         sys.excepthook = self.DisplayErrorWindow
         sys.tracebacklimit = 0 # prevents printing the whole traceback in the error message window
+        sys.stderr = open('SM64BruteforceGUI.error.log', 'w') # redirect where log file is written
 
         self.Bind(wx.EVT_CLOSE, self.OnWindowClose)
         # End Bindings
@@ -186,15 +187,20 @@ class MainFrame(wx.Frame):
         temp = self.temp_txtbox.GetValue()
         if temp != '':
             so.set_temp(float(temp))
+        else:
+            # Default annealing temperature
+            so.set_temp(0.4)
+            self.temp_txtbox.SetValue('0.4')
         if common.print_to_stdout:
             print('Starting Temperature:', so.get_option_val('temp'))
-        return not isinstance(so.get_option_val('temp'), type(None))
+        return True
 
     def SetRegularization(self):
         """Set bruteforce regularization option from GUI"""
         so.set_regularization(self.regularization_checkbox.GetValue())
         if common.print_to_stdout:
             print('Regularize Inputs:', self.regularization_checkbox.GetValue())
+        return True
 
     def SetDesCoords(self):
         """Set coordinate fitness options from GUI""" 
@@ -223,7 +229,9 @@ class MainFrame(wx.Frame):
             print('Des X:', str(so.get_option_val('des_x')), '(' + ('N/A', str(so.get_option_weight('des_x')))[so.get_option_weight('des_x') != ''] + ')', 
                   'Des Y:', str(so.get_option_val('des_y')), '(' + ('N/A', str(so.get_option_weight('des_y')))[so.get_option_weight('des_y') != ''] + ')',
                   'Des Z:', str(so.get_option_val('des_z')), '(' + ('N/A', str(so.get_option_weight('des_z')))[so.get_option_weight('des_z') != ''] + ')')
-        return (not isinstance(so.get_option_val('des_x'), type(None)) and not isinstance(so.get_option_val('des_y'), type(None)) and not isinstance(so.get_option_val('des_z'), type(None)))
+        if so.get_option_val('des_x') or so.get_option_val('des_y') or so.get_option_val('des_z'):
+            return True # return (not isinstance(so.get_option_val('des_x'), type(None)) and not isinstance(so.get_option_val('des_y'), type(None)) and not isinstance(so.get_option_val('des_z'), type(None)))
+        return False
 
     def SetDesHSpd(self):
         """Set goal horizontal speed from GUI"""
@@ -238,7 +246,9 @@ class MainFrame(wx.Frame):
                 self.hspd_weight_txtbox.SetValue('1')
         if common.print_to_stdout:
             print('Des HSpd:', str(so.get_option_val('des_hspd')), '(' + ('N/A', str(so.get_option_weight('des_hspd')))[so.get_option_weight('des_hspd') != ''] + ')')
-        return not isinstance(so.get_option_val('des_hspd'), type(None))
+        if so.get_option_val('des_hspd'):
+            return True # return not isinstance(so.get_option_val('des_hspd'), type(None))
+        return False
 
     def SetDesCoins(self):
         """Set goal coin count from GUI"""
@@ -251,7 +261,9 @@ class MainFrame(wx.Frame):
                 self.coins_weight_txtbox.SetValue('1')
         if common.print_to_stdout:
             print('Des Coins:', str(so.get_option_val('des_coins')), '(' + ('N/A', str(so.get_option_weight('des_coins')))[so.get_option_weight('des_coins') != ''] + ')')
-        return not isinstance(so.get_option_val('des_coins'), type(None))
+        if so.get_option_val('des_coins'):
+            return True # return not isinstance(so.get_option_val('des_coins'), type(None))
+        return False
 
     def SetDesFYaw(self):
         """Set goal facing yaw from GUI"""
@@ -266,7 +278,9 @@ class MainFrame(wx.Frame):
                 self.fyaw_weight_txtbox.SetValue('1')
         if common.print_to_stdout:
             print('Des FYaw:', str(so.get_option_val('des_fyaw')), '(' + ('N/A', str(so.get_option_weight('des_fyaw')))[so.get_option_weight('des_fyaw') != ''] + ')')
-        return not isinstance(so.get_option_val('des_fyaw'), type(None))
+        if so.get_option_val('des_fyaw'):
+            return True # return not isinstance(so.get_option_val('des_fyaw'), type(None))
+        return False
 
     def SetDesActn(self):
         """Set goal action from GUI"""
@@ -275,6 +289,9 @@ class MainFrame(wx.Frame):
             so.set_des_actn(actions[actn])
         if common.print_to_stdout:
             print('Des Action:', ('None', actn)[actn != ''])
+        if so.get_option_val('des_actn'):
+            return True
+        return False
 
     def SetConditionalOptions(self):
         """Set conditional options from GUI"""
@@ -310,21 +327,28 @@ class MainFrame(wx.Frame):
 
             if common.print_to_stdout:
                 print('--- Configuration ---')
-            # If any of these are None, error
+            # If any of these are empty, error
             if not self.SetGame()           \
             or not self.SetRange()          \
             or not self.SetM64()            \
             or not self.SetTemp()           \
-            or not self.SetRegularization() \
-            or not self.SetDesCoords()      \
-            or not self.SetDesHSpd()        \
-            or not self.SetDesCoins()       \
-            or not self.SetDesFYaw()        \
-            or not self.SetDesActn():
-                raise ValueError('One or more required options not provided.')
+            or not self.SetRegularization():
+                raise ValueError('One or more configuration options not provided.')
+            # If all of these are empty, error
+            opts_empty_check = 0
             cond_opt_res = self.SetConditionalOptions()
             if not cond_opt_res:
                 return
+            else:
+                opts_empty_check += 1
+            opts_empty_check += 1 if not self.SetDesCoords() else 0
+            opts_empty_check += 1 if not self.SetDesHSpd()   else 0
+            opts_empty_check += 1 if not self.SetDesCoins()  else 0
+            opts_empty_check += 1 if not self.SetDesFYaw()   else 0
+            opts_empty_check += 1 if not self.SetDesActn()   else 0
+            opts_empty_check += 1 if not cond_opt_res        else 0
+            if opts_empty_check == 0:
+                raise ValueError('At least one fitness option must be provided.')
             if common.print_to_stdout:
                 print('---------------------')
 

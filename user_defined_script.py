@@ -3,6 +3,7 @@ Handles bruteforcing and sending output data back to GUI (core bruteforce code w
 """
 
 from dataclasses import dataclass
+from itertools import product
 from ctypes import c_uint16
 from queue import Queue
 from random import *
@@ -115,22 +116,22 @@ class Bruteforcer:
             des_fyaw = so.get_option_val('des_fyaw')
         )
         fitness = 0
-        iter = range(1, 6)
+        iter = range(1, 7)
         for option, i in zip(fitness_opt_vals, iter):
             # Skip unused options
             if fitness_opt_vals[option] == None:
                 continue
             # Apply weights
             weight = 1
-            if so.get_option_weight(option) != '':
+            if so.get_option_weight(option) != '' and so.get_option_weight(option) != 1:
                 weight = so.get_option_weight(option)
             fitness += weight * abs(fitness_opt_vals[option] - eval(list(locals())[i]))
 
-        # If the desired action isn't achieved, no improvement is made to fitness
+        # If the desired action isn't achieved, fitness is punished
         des_actn = so.get_option_val('des_actn')
         if des_actn != None and des_actn != '':
             if actn != des_actn:
-                return 99999
+                fitness += 10000 # return 99989
 
         # Apply user-defined conditional statements
         cond_opts = so.get_option_val('cond_opts')
@@ -150,6 +151,11 @@ class Bruteforcer:
             # Send the exception information to the GUI
             common.PostEventWrapper(queue.queue[0], common.WafelErrorEvent(exception_type=self.error[0], exception_value=self.error[1], exception_traceback=self.error[2]))
             return
+        
+        ordered_changes = product(range(self.start_frame + 1, self.end_frame), range(0, 4), range(1, 4),
+                                  range(self.start_frame + 1, self.end_frame), range(0, 4), range(1, 4))
+        ordered_changes = list(ordered_changes)
+        shuffle(ordered_changes)
 
         # Make a backup of the original inputs
         m64_orig = self.m64
@@ -159,13 +165,13 @@ class Bruteforcer:
         for attempt in range(500000):
             last_change = 0
             # Temperature for annealing
-            temp = so.get_option_val('temp')
+            temp = random() * so.get_option_val('temp')
             # Determine the size of joystick perturbations and number of joystick perturbations
             max_changes = randint(1, 8)
             max_size = randint(1, 30)
             # With some probability, drop down to size 1 or count 1 (helps explore locally)
-            big_change_num_prob = random() * .2
-            big_change_size_prob = random() * .5
+            big_change_num_prob = random() * .2 * 5
+            big_change_size_prob = random() * .5 * 5
             m64 = best_ever_m64
             best_val = 99999
             cur_val = best_val
@@ -189,7 +195,7 @@ class Bruteforcer:
                 # Array to keep track of changes made to the m64.
                 # Make some random changes, check fitness, revert if not good enough.
                 changes = []
-                if i % 500 == 0:
+                if i % 1000 == 0:
                     if common.print_to_stdout:
                         print(f'{i}. {cur_val:.4f}')
                 # Lower temperature
@@ -229,11 +235,27 @@ class Bruteforcer:
                 # now find its fitness to minimize
                 # this works by loading starting state, running current inputs and measuring what happened
                 fit = 0
+                # cond_opt_frame_opt = so.get_option_val('cond_opt_frame_opt')
                 self.game.load_state(self.startst)
                 for frame in range(self.start_frame, self.end_frame):
                     self.set_inputs(self.game, (m64[1][frame + 1]))
                     self.game.advance()
-                    
+                    if frame == self.start_frame:
+                        fit = 0  
+                    # if cond_opt_frame_opt:
+                    #     # need access to all fitness vars for cond_opt_frame_opt
+                    #     x = self.game.read('gMarioState.pos')[0]
+                    #     y = self.game.read('gMarioState.pos')[1]
+                    #     z = self.game.read('gMarioState.pos')[2]
+                    #     hspd = self.game.read('gMarioState.forwardVel')
+                    #     fyaw = self.game.read('gMarioState.faceAngle')[1]
+                    #     actn = self.game.read('gMarioState.action')
+                    #     coins = self.game.read('gMarioState.numCoins')
+                    #     # if they're going to break, we have to set fit to 1
+                    #     if 'break' in cond_opt_frame_opt:
+                    #         fit = 1
+                    #     eval(cond_opt_frame_opt)
+    
                 endst = self.game.save_state()
                 offset = 0
                 # values that can be used to figure out fitness
@@ -244,17 +266,17 @@ class Bruteforcer:
                 fyaw = self.game.read('gMarioState.faceAngle')[1]
                 actn = self.game.read('gMarioState.action')
                 coins = self.game.read('gMarioState.numCoins')
-                if fyaw > 65535:
-                    fyaw -= 65536
-                elif fyaw < 0:
+                # if fyaw > 65535:
+                #     fyaw -= 65536
+                if fyaw < 0:
                     fyaw += 65536
                 fitness = self.get_fitness(x, y, z, hspd, coins, fyaw, actn)
-                # return
-                if fit == 99999:
-                    fitness = 99990
+
+                # if fit == 99999:
+                #     fitness = 99990
                 if so.get_regularization():
                     fitness = fitness + self.l1ofdiff(m64)*.03 # ?
-                if fitness < cur_val:
+                if fitness < cur_val and fit == 0:
                     last_change = i
                     cur_val = fitness
                     if fitness < best_val:
@@ -263,17 +285,13 @@ class Bruteforcer:
                             print(f'X: {x} Y: {y} ' 
                                   f'Z: {z} HSpd: {hspd} '
                                   f'FYaw: {fyaw} Coins: {coins}')
-                        self.current_values.x = self.game.read('gMarioState.pos')[0]
-                        self.current_values.y = self.game.read('gMarioState.pos')[1]
-                        self.current_values.z = self.game.read('gMarioState.pos')[2]
-                        self.current_values.hspd = self.game.read('gMarioState.forwardVel')
-                        self.current_values.fyaw = self.game.read('gMarioState.faceAngle')[1]
-                        self.current_values.actn = self.game.read('gMarioState.action')
-                        self.current_values.coins = self.game.read('gMarioState.numCoins')
-                        if self.current_values.fyaw > 65535:
-                            self.current_values.fyaw -= 65536
-                        elif self.current_values.fyaw < 0:
-                            self.current_values.fyaw += 65536
+                        self.current_values.x = x
+                        self.current_values.y = y
+                        self.current_values.z = z
+                        self.current_values.hspd = hspd
+                        self.current_values.fyaw = fyaw
+                        self.current_values.actn = actn
+                        self.current_values.coins = coins
                         self.current_values.fitness = best_val = fitness
                     if fitness < best_ever_val:
                         if common.print_to_stdout:
@@ -284,10 +302,10 @@ class Bruteforcer:
                         # Send data to GUI through event
                         common.PostEventWrapper(queue.queue[0], common.UpdateOutputEvent(vals=self.current_values))
                 # Chose the most basic function for annealing
-                elif random() < np.exp(-(self.current_values.fitness - cur_val) / temp):
-                    if self.current_values.fitness != cur_val:
+                elif random() < np.exp(-(fitness - cur_val) / temp):
+                    if fitness != cur_val:
                         last_change = i
-                    cur_val = self.current_values.fitness
+                    cur_val = fitness
                 else:
                     # if we failed, revert m64
                     # revert changes in reverse order of how they were made
