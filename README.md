@@ -40,7 +40,7 @@ Adds `50` to the fitness function's return value if **Coins** is not equal to `9
 # Dependencies
 <ins>Note</ins>: these are only needed if you plan to run from source.
 - **[A compatible version of Python (version 3.7-3.9)](https://www.python.org/downloads/release/python-3916/)**<br>
-Be sure to add this Python version to your PATH, so pipenv can find it when setting up the virtual environment (if you already have a separate non-compatible Python installation, you'll have to specify that version in the following pip and pipenv commands. You can do so by using its full path followed by `-m` and then followed by the command, or you can rename the `python.exe` executable in the `Python39` folder and call it using that name).<br>
+Be sure to add this Python version to your PATH, so pipenv can find it when setting up the virtual environment.<br>
 Once a compatible version of Python is installed, run the following commands:<br>
     ```cmd
     your\path\here> cd SM64BruteforceGUIv1.0.2
@@ -51,12 +51,13 @@ Once a compatible version of Python is installed, run the following commands:<br
     This will install [pipenv](https://github.com/pypa/pipenv), the virtual environment tool used by this project, and then use it to create the virtual environment with most of the Python dependencies necessary to run the project.
 - **[Wafel Python Bindings](https://github.com/branpk/wafel#wafel-as-a-library)**<br>
 Download Wafel and unlock the libsm64 .dll files you plan to use using the Wafel GUI program. You will have to provide their respective unmodified SM64 ROMs in order to unlock them.<br>
-Once Wafel is installed and the desired .dll's are unlocked, run the following command:<br>
+Once Wafel is installed and the desired .dll's are unlocked, navigate to your Wafel installation directory and run the following command:<br>
     ```cmd
-    your\path\here\SM64BruteforceGUIv1.0.2> pipenv run get_wafel_bindings
+    your\path\here\wafel_0_8_5_win_x64> pipenv run get_wafel_bindings
     ```
 
-    This will install the Python bindings for the Wafel library, and then you'll be ready to run `gui.py` from within the virtual environment!<br>
+    This will install the Python bindings for the Wafel library. After they're installed, navigate back to the SM64BruteforceGUI directory, and then you'll be ready to run `gui.py` from within the virtual environment!<br><br>
+    
     If you want to build the executable yourself (using [py2exe](https://github.com/py2exe/py2exe)), then run the following commands:<br>
     ```cmd
     your\path\here\SM64BruteforceGUIv1.0.2> pipenv shell
